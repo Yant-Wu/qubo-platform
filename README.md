@@ -1,103 +1,134 @@
-# React + TypeScript + Vite
+# QUBO Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+以 React + TypeScript + Vite 打造的 QUBO/Knapsack 監控儀表板，支援：
 
-Currently, two official plugins are available:
+- 參數設定 -> QUBO 設定 -> 求解監控三步驟流程
+- 歷史任務列表與任務詳情查詢
+- Q_matrix 檔案上傳（custom 路徑）
+- Knapsack 手動輸入與 CSV/JSON 匯入
+- 收斂圖、Q-bit 機率圖、Entropy 圖
+- 左側欄 EN/CH 語言切換（語言會保存在 localStorage）
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 技術棧
 
-## React Compiler
+- React 19
+- TypeScript
+- Vite 7
+- Tailwind CSS 4
+- ECharts + echarts-for-react
+- ESLint + typescript-eslint
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 目錄結構
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+src/
+  components/          UI 元件（頁面與圖表）
+  hooks/               狀態與資料流程 Hook
+  services/            API 封裝
+  types/               共用型別
+  App.tsx              頁面流程與全域狀態
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 環境需求
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Node.js 20+
+- npm 10+
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 本機開發
+
+1. 安裝依賴
+
+```bash
+npm install
 ```
 
-## Production checklist (real database)
+2. 建立環境變數
 
-### 1) Frontend must point to real backend
+```bash
+cp .env.example .env.local
+```
 
-- Copy `.env.example` to `.env.production`
-- Set `VITE_API_BASE` to your production API domain
-- Build with `npm run build`
+3. 啟動開發伺服器
 
-### 2) Backend API (required for DB-based status)
+```bash
+npm run dev
+```
 
-- `GET /api/jobs` (list from DB)
-- `POST /api/jobs` (create row in DB)
-- `GET /api/jobs/{id}` (detail from DB)
-- `DELETE /api/jobs/{id}` (delete row in DB)
-- `PATCH /api/jobs/{id}/status` (update `pending|running|completed|failed`)
-- `POST /api/jobs/{id}/history` (append convergence points)
+## 可用指令
 
-### 3) Data consistency rules
+```bash
+npm run dev      # 啟動開發模式
+npm run build    # 型別檢查 + 正式打包
+npm run preview  # 本機預覽打包結果
+npm run lint     # 程式碼檢查
+```
 
-- Sidebar status uses backend `status` only
-- History chart data should come from backend `history_data`
-- Avoid using browser-only state as source of truth in production
+## 環境變數
 
-### 4) Pre-release smoke test
+| 變數 | 說明 | 預設 |
+| --- | --- | --- |
+| `VITE_API_BASE` | 後端 API Base URL。留空代表同源（例如 `/api/...`） | `""` |
 
-- Create a job from UI and confirm DB row exists
-- Verify status transition `pending -> running -> completed` in DB
-- Refresh browser and confirm same status/history is displayed
-- Delete a job and confirm DB row is removed
+說明：
+
+- 本地開發可設為 `http://localhost:8000`
+- 若前後端同網域（例如 nginx 反向代理），建議留空
+
+## 前端 API 依賴
+
+前端目前使用以下端點：
+
+- `GET /api/jobs`：任務列表
+- `GET /api/jobs/{id}`：任務詳情
+- `POST /api/jobs`：建立任務
+- `DELETE /api/jobs/{id}`：刪除任務
+- `POST /api/jobs/solve`：建立並同步求解（回傳結果與 job_id）
+
+建議後端資料一致性：
+
+- 以後端 `status` 作為任務真實狀態來源
+- 以後端 `history_data` 作為圖表資料來源
+
+## Docker 部署
+
+專案內含多階段 Dockerfile：
+
+- Stage 1：Node 映像進行 build
+- Stage 2：Nginx 提供靜態檔
+
+建置映像：
+
+```bash
+docker build -t qubo-dashboard .
+```
+
+啟動容器：
+
+```bash
+docker run --rm -p 8080:80 qubo-dashboard
+```
+
+Nginx 設定重點：
+
+- `/api/*` 會 proxy 到 `http://backend:8000`
+- SPA 路由 fallback 到 `index.html`
+- 靜態資源快取已啟用
+
+若你使用 Docker Compose，請確保後端服務名稱為 `backend`，或同步調整 `nginx.conf` 的 `proxy_pass`。
+
+## 主要使用流程
+
+1. 在第一頁填入任務基本參數
+2. 在第二頁設定 Knapsack 資料或上傳 custom Q_matrix
+3. 送出後進入監控頁，查看收斂曲線與最佳化結果
+4. 可從左側歷史任務直接回看舊任務
+
+## 疑難排解
+
+- API 404/500：先檢查 `VITE_API_BASE` 與後端端點是否一致
+- 畫面空白：檢查瀏覽器 console 與 `npm run build` 是否有錯
+- Docker 下 API 無法連線：確認 nginx 反向代理目標與服務名稱
+
+## 授權
+
+若需開源發布，請補上對應授權（例如 MIT）。
