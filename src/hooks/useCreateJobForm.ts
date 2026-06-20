@@ -4,8 +4,8 @@ import { useState } from 'react';
 import type { CreateJobPayload } from '../types/job';
 
 export const PROBLEM_TYPES = [
-  { value: 'knapsack', label: '背包問題 (Knapsack)' },
-  { value: 'custom',   label: '自定義 QUBO 矩陣 (Custom)' },
+  { value: 'knapsack' },
+  { value: 'custom' },
 ] as const;
 
 export interface UseCreateJobFormReturn {

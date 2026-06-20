@@ -27,6 +27,10 @@ const i18n = {
     errorTask: '請輸入任務標題',
     errorType: '請選擇問題類型',
     errorTimeout: 'Timeout 必須為正整數',
+    problemTypeLabels: {
+      knapsack: '背包問題 (Knapsack)',
+      custom: '自定義 QUBO 矩陣 (Custom)',
+    },
   },
   en: {
     sectionBasic: 'Basic Settings',
@@ -41,6 +45,10 @@ const i18n = {
     errorTask: 'Please enter a task title',
     errorType: 'Please select a problem type',
     errorTimeout: 'Timeout must be a positive integer',
+    problemTypeLabels: {
+      knapsack: 'Knapsack',
+      custom: 'Custom QUBO Matrix',
+    },
   }
 };
 
@@ -102,7 +110,7 @@ export default function ParamsPage({ onNext, defaultSimParams, defaultPayload, r
                 >
                   <option value="" disabled>{t.problemType}</option>
                   {PROBLEM_TYPES.map((p) => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
+                    <option key={p.value} value={p.value}>{t.problemTypeLabels[p.value]}</option>
                   ))}
                 </select>
                 {!problemType && <div className="text-rose-400 text-xs mt-1">{t.errorType}</div>}
