@@ -144,7 +144,7 @@ static string jdbl(double d) {
 int main(int argc, char* argv[]) {
     vector<double> weights, values;
     double capacity = 0.0, penalty = 10.0, timeout = 30.0;
-    int population = 50, iterations = 1000; long long seed = -1LL;
+    int population = 50, iterations = 1000, slack_bits = 0; long long seed = -1LL;
 
     for (int i = 1; i < argc - 1; ++i) {
         string key = argv[i], val = argv[i + 1];
@@ -152,6 +152,7 @@ int main(int argc, char* argv[]) {
         else if (key == "--values") { values = parse_csv(val); ++i; }
         else if (key == "--capacity") { capacity = stod(val); ++i; }
         else if (key == "--penalty") { penalty = stod(val); ++i; }
+        else if (key == "--slack-bits") { slack_bits = stoi(val); ++i; }
         else if (key == "--population") { population = stoi(val); ++i; }
         else if (key == "--iterations") { iterations = stoi(val); ++i; }
         else if (key == "--timeout") { timeout = stod(val); ++i; }
@@ -166,7 +167,8 @@ int main(int argc, char* argv[]) {
     g_rng.seed((unsigned long long)seed);
 
     // ── Build QUBO Matrix (Knapsack with Slack bits) ──
-    int K = capacity > 0 ? max(1, (int)ceil(log2(capacity + 1.0))) : 1;
+    int auto_K = capacity > 0 ? max(1, (int)ceil(log2(capacity + 1.0))) : 1;
+    int K = slack_bits > 0 ? slack_bits : auto_K;
     int total_vars = n_items + K;
     vector<double> coeffs(total_vars);
     for (int i = 0; i < n_items; ++i) coeffs[i] = weights[i];
@@ -175,7 +177,9 @@ int main(int argc, char* argv[]) {
     vector<double> Qflat(total_vars * total_vars, 0.0);
     for (int i = 0; i < total_vars; ++i) {
         double v_i = (i < n_items) ? values[i] : 0.0;
-        Qflat[i * total_vars + i] = penalty * (coeffs[i] * coeffs[i] - 2.0 * capacity * coeffs[i]) - v_i;
+        // Case 3 / QUBO_new benchmark linear coefficient:
+        // -value_i + 2P*coeff_i^2 - 2P*C*coeff_i.
+        Qflat[i * total_vars + i] = penalty * (2.0 * coeffs[i] * coeffs[i] - 2.0 * capacity * coeffs[i]) - v_i;
         for (int j = i + 1; j < total_vars; ++j) {
             double val = 2.0 * penalty * coeffs[i] * coeffs[j];
             Qflat[i * total_vars + j] = val / 2.0;
@@ -255,7 +259,6 @@ int main(int argc, char* argv[]) {
                  << ", \"is_feasible\":" << (is_feasible ? "true" : "false")
                  << ", \"qubit_probs\":[" << probs_json.str() << "]}" << endl;
         }
-        if (current_entropy <= 0.02) break;
     }
 
     double elapsed_ms = chrono::duration<double, milli>(chrono::high_resolution_clock::now() - t_start).count();

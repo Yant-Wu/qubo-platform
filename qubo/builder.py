@@ -31,8 +31,10 @@ def build_knapsack_qubo(data: Dict[str, Any]) -> np.ndarray:
     
     目標：最大化價值，受重量限制約束
     
-    QUBO 形式：
-    H = -Σ value_i * x_i + penalty * (Σ weight_i * x_i - max_weight)^2
+    Case 3 / QUBO_new 實驗基準：
+    線性項為 -value_i + 2 * penalty * coeff_i²
+    - 2 * penalty * max_weight * coeff_i，二次項為
+    2 * penalty * coeff_i * coeff_j。
     
     Args:
         data: {
@@ -54,8 +56,8 @@ def build_knapsack_qubo(data: Dict[str, Any]) -> np.ndarray:
     
     n = len(items)
 
-    # Slack variables：將 Σw_i x_i ≤ C 轉成 Σw_i x_i + Σ2^k s_k = C
-    # K 由使用者設定，未設定則自動推算 ⌈log2(C+1)⌉
+    # Slack variables：將 Σw_i x_i ≤ C 轉成 Σw_i x_i + Σ2^k s_k = C。
+    # K 可由使用者指定；未指定時依簡報公式自動推算 ⌈log2(C+1)⌉。
     auto_K = max(1, math.ceil(math.log2(max_weight + 1))) if max_weight > 0 else 1
     K = int(data.get("slack_bits") or auto_K)
     if K < 1:
@@ -70,9 +72,11 @@ def build_knapsack_qubo(data: Dict[str, Any]) -> np.ndarray:
     # 約束係數：物品用 weight，slack 用 2^k
     coeffs = [float(items[i]["weight"]) for i in range(n)] + [float(2 ** k) for k in range(K)]
 
-    # 展開 penalty * (Σ coeffs[i]*y_i - C)^2
+    # Case 3 / QUBO_new 採用實驗基準的線性係數：
+    # -value_i + 2 * penalty * coeff_i^2 - 2 * penalty * C * coeff_i。
+    # Slack 變數的 value 為 0，套用相同係數規則。
     for i in range(total):
-        Q[i, i] += penalty * (coeffs[i] ** 2 - 2 * max_weight * coeffs[i])
+        Q[i, i] += penalty * (2 * coeffs[i] ** 2 - 2 * max_weight * coeffs[i])
         for j in range(i + 1, total):
             Q[i, j] += penalty * 2 * coeffs[i] * coeffs[j]
 
@@ -171,4 +175,3 @@ def build_custom_qubo(data: Dict[str, Any]) -> np.ndarray:
     Q = (Q + Q.T) / 2
     
     return Q
-

@@ -59,6 +59,7 @@ class ProblemData(BaseModel):
     items: Optional[List[KnapsackItemData]] = Field(default=None, max_length=10000, description="Knapsack 物品清單（最多 500 項）")
     capacity: Optional[float] = Field(default=None, gt=0, description="Knapsack 容量（必須 > 0）")
     penalty: Optional[float] = Field(default=None, gt=0, description="Knapsack 懲罰係數（必須 > 0，否則約束無效）")
+    slack_bits: Optional[int] = Field(default=None, ge=1, description="Slack variable 數量 K（未設定時自動推算）")
     # 求解結果（存回 DB，刷新後仍可讀取）
     selected_items: Optional[List[KnapsackItemData]] = Field(default=None, description="已選取的物品清單")
     total_value: Optional[float] = Field(default=None, description="最佳解總價值")

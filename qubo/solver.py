@@ -36,6 +36,7 @@ def cuda_knapsack_solver(
     values: List[float],
     capacity: float,
     penalty: float,
+    slack_bits: Optional[int] = None,
     N: int = 50,
     num_iterations: int = 1000,
     seed: Optional[int] = None,
@@ -55,6 +56,8 @@ def cuda_knapsack_solver(
         "--iterations", str(int(num_iterations)),
         "--timeout",    str(float(timeout)),
     ]
+    if slack_bits is not None:
+        cmd.extend(["--slack-bits", str(int(slack_bits))])
     if seed is not None:
         cmd.extend(["--seed", str(int(seed))])
 
@@ -155,7 +158,6 @@ def aeqts_solver(
     best_energy  = float((best_sol @ Q_dev) @ best_sol)
 
     record_interval   = 1
-    ENTROPY_THRESHOLD = 0.02
 
     for it in range(num_iterations):
         current_entropy = _entropy(alpha, beta, xp)
@@ -186,9 +188,6 @@ def aeqts_solver(
                 "is_feasible"   : is_feasible,
                 "qubit_probs"   : qubit_probs,
             }
-
-        if current_entropy <= ENTROPY_THRESHOLD:
-            break
 
     computation_time_ms = (time.time() - start_time) * 1000
     

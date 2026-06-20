@@ -79,7 +79,7 @@ def _simulate_job(db: Session, job: Job):
 
     n_vars = Q.shape[0] if Q is not None else len(raw.get("items", []))
     N = int(job.core_limit or 50)
-    num_iterations = int(user_num_iterations) if user_num_iterations else max(1000, n_vars * 100)
+    num_iterations = int(user_num_iterations) if user_num_iterations else 1000
     timeout_secs = float(user_timeout) if user_timeout else 30.0
 
     import time as _time
@@ -100,6 +100,7 @@ def _simulate_job(db: Session, job: Job):
         _penalty  = float(raw.get("penalty", 10.0))
         solver_gen = cuda_knapsack_solver(
             weights=_weights, values=_values, capacity=_capacity, penalty=_penalty,
+            slack_bits=raw.get("slack_bits"),
             N=N, num_iterations=num_iterations, seed=None, timeout=timeout_secs
         )
     else:
