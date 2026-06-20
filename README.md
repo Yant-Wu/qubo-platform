@@ -1,134 +1,116 @@
 # QUBO Dashboard
 
-以 React + TypeScript + Vite 打造的 QUBO/Knapsack 監控儀表板，支援：
+React + TypeScript + Vite 儀表板，搭配本專案的 `backend/` 使用。提供 Knapsack 與 Custom QUBO 的設定、背景任務監控、歷史任務與圖表視覺化。
 
-- 參數設定 -> QUBO 設定 -> 求解監控三步驟流程
-- 歷史任務列表與任務詳情查詢
-- Q_matrix 檔案上傳（custom 路徑）
-- Knapsack 手動輸入與 CSV/JSON 匯入
-- 收斂圖、Q-bit 機率圖、Entropy 圖
-- 左側欄 EN/CH 語言切換（語言會保存在 localStorage）
+## 功能
 
-## 技術棧
+- 基本參數 → Knapsack 資料或 Custom `Q_matrix` 的兩步設定流程
+- Knapsack 手動輸入，或以 CSV／JSON 匯入物品資料
+- Custom QUBO 上傳 JSON 二維方陣（`.json` 或 `.txt`）
+- 背景任務每秒輪詢，顯示收斂、QUBO energy、Q-bit probabilities 與 entropy
+- 歷史任務檢視、刪除與「套用此設定」重跑
+- 中英介面切換，語言選擇保存在瀏覽器 `localStorage`
 
-- React 19
-- TypeScript
-- Vite 7
-- Tailwind CSS 4
-- ECharts + echarts-for-react
-- ESLint + typescript-eslint
-
-## 目錄結構
-
-```text
-src/
-  components/          UI 元件（頁面與圖表）
-  hooks/               狀態與資料流程 Hook
-  services/            API 封裝
-  types/               共用型別
-  App.tsx              頁面流程與全域狀態
-```
-
-## 環境需求
-
-- Node.js 20+
-- npm 10+
+目前 UI 僅有 **Knapsack** 與 **Custom QUBO**；後端雖含 MaxCut builder，前端尚未提供 MaxCut 輸入表單。
 
 ## 本機開發
 
-1. 安裝依賴
+需求：Node.js 20+、npm 10+。先依 [後端 README](../backend/README.md) 啟動 API，再在本目錄執行：
 
 ```bash
 npm install
-```
-
-2. 建立環境變數
-
-```bash
 cp .env.example .env.local
-```
-
-3. 啟動開發伺服器
-
-```bash
 npm run dev
 ```
 
-## 可用指令
+開發伺服器預設位於 <http://localhost:5173>。`.env.local` 應設定：
+
+```dotenv
+VITE_API_BASE=http://localhost:8000
+```
+
+Vite 沒有設定 development proxy。若未填 `VITE_API_BASE`，瀏覽器會對 Vite 自己的來源請求 `/api/...`，不會自動轉到後端。
+
+## 指令
 
 ```bash
-npm run dev      # 啟動開發模式
-npm run build    # 型別檢查 + 正式打包
-npm run preview  # 本機預覽打包結果
-npm run lint     # 程式碼檢查
+npm run dev      # 啟動 Vite 開發伺服器
+npm run build    # TypeScript type check 後產出 dist/
+npm run preview  # 預覽已建置的 dist/
+npm run lint     # ESLint 檢查
 ```
 
 ## 環境變數
 
-| 變數 | 說明 | 預設 |
+| 變數 | 開發建議 | 說明 |
 | --- | --- | --- |
-| `VITE_API_BASE` | 後端 API Base URL。留空代表同源（例如 `/api/...`） | `""` |
+| `VITE_API_BASE` | `http://localhost:8000` | 後端 URL 前綴；空字串代表同源相對路徑。 |
 
-說明：
+這是 Vite build-time 變數，變更後請重啟 `npm run dev` 或重建。Dockerfile 建置時會強制將它設為空字串，讓 API 走 Nginx 的同源 `/api/...` proxy；Docker 情境不要設定成瀏覽器無法解析的 Docker service 名稱。
 
-- 本地開發可設為 `http://localhost:8000`
-- 若前後端同網域（例如 nginx 反向代理），建議留空
+## 後端整合
 
-## 前端 API 依賴
+| Method | Endpoint | 用途 |
+| --- | --- | --- |
+| `GET` | `/api/jobs` | 讀取側欄歷史任務。 |
+| `GET` | `/api/jobs/{id}` | 讀取詳情與 `history_data`；執行中每秒輪詢。 |
+| `POST` | `/api/jobs/solve` | 建立並啟動背景求解。 |
+| `DELETE` | `/api/jobs/{id}` | 刪除歷史任務。 |
 
-前端目前使用以下端點：
+`POST /api/jobs/solve` 會立即回傳 `job_id`，真正結果稍後才寫入任務紀錄。因此監控頁以 `GET /api/jobs/{id}` 的 `status`、`history_data` 與 `problem_data` 為準，不應將初始 solve 回應當成最終結果。
 
-- `GET /api/jobs`：任務列表
-- `GET /api/jobs/{id}`：任務詳情
-- `POST /api/jobs`：建立任務
-- `DELETE /api/jobs/{id}`：刪除任務
-- `POST /api/jobs/solve`：建立並同步求解（回傳結果與 job_id）
+## 匯入格式
 
-建議後端資料一致性：
+Knapsack CSV 第一列必須含 `name`、`weight`、`value`，欄位順序不限：
 
-- 以後端 `status` 作為任務真實狀態來源
-- 以後端 `history_data` 作為圖表資料來源
-
-## Docker 部署
-
-專案內含多階段 Dockerfile：
-
-- Stage 1：Node 映像進行 build
-- Stage 2：Nginx 提供靜態檔
-
-建置映像：
-
-```bash
-docker build -t qubo-dashboard .
+```csv
+name,weight,value
+A,2,8
+B,3,11
 ```
 
-啟動容器：
+Knapsack JSON 接受陣列，或含 `items` 陣列的物件：
 
-```bash
-docker run --rm -p 8080:80 qubo-dashboard
+```json
+[{"name": "A", "weight": 2, "value": 8}]
 ```
 
-Nginx 設定重點：
+Custom QUBO 檔案必須為非空數值方陣：
 
-- `/api/*` 會 proxy 到 `http://backend:8000`
-- SPA 路由 fallback 到 `index.html`
-- 靜態資源快取已啟用
+```json
+[[-1, 2], [2, -1]]
+```
 
-若你使用 Docker Compose，請確保後端服務名稱為 `backend`，或同步調整 `nginx.conf` 的 `proxy_pass`。
+## Docker 與部署
 
-## 主要使用流程
+Dockerfile 以 Nginx 提供靜態檔，並將 `/api/*`、`/health` 代理至 Docker 網路中的 `backend:8000`。使用根目錄的 Compose 同時啟動兩個服務：
 
-1. 在第一頁填入任務基本參數
-2. 在第二頁設定 Knapsack 資料或上傳 custom Q_matrix
-3. 送出後進入監控頁，查看收斂曲線與最佳化結果
-4. 可從左側歷史任務直接回看舊任務
+```bash
+# 在專案根目錄執行
+docker compose up -d
+```
+
+完成後開啟 <http://localhost>。此 Compose 使用 GPU 後端，NVIDIA 主機需求請參閱 [後端 Docker 說明](../backend/README.md#docker)。
+
+若只用 `docker run` 啟動前端容器，容器內不會自動有名為 `backend` 的主機，API proxy 無法連線。請使用 Compose，或自行建立同一 Docker network 並提供名為 `backend` 的服務。
+
+## 目錄結構
+
+```text
+qubo-dashboard/
+├── src/
+│   ├── components/  # 設定頁、側欄、監控與圖表
+│   ├── hooks/       # 表單、任務查詢與輪詢
+│   ├── services/    # API client、jobs 與 solve 呼叫
+│   └── types/       # 共用型別
+├── nginx.conf       # API proxy 與 SPA fallback
+├── Dockerfile       # Node build + Nginx runtime
+└── vite.config.ts
+```
 
 ## 疑難排解
 
-- API 404/500：先檢查 `VITE_API_BASE` 與後端端點是否一致
-- 畫面空白：檢查瀏覽器 console 與 `npm run build` 是否有錯
-- Docker 下 API 無法連線：確認 nginx 反向代理目標與服務名稱
-
-## 授權
-
-若需開源發布，請補上對應授權（例如 MIT）。
+- **開發時 API 404／Network Error**：確認後端在 8000 埠啟動，`.env.local` 的 `VITE_API_BASE` 是 `http://localhost:8000`，再重啟 Vite。
+- **Docker 前端有畫面卻沒有資料**：確認兩個服務在同一 Compose network；使用 `docker compose logs backend` 查看 API 與資料庫初始化。
+- **任務長時間 running 或 failed**：查看後端日誌；`failed` 的錯誤類型會寫在 `error_message`。GPU 映像需有可用的 NVIDIA runtime。
+- **建置或型別問題**：依序執行 `npm run lint` 與 `npm run build`。
