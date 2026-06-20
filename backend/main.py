@@ -1,0 +1,116 @@
+# main.py — FastAPI 應用初始化（單一職責：應用程式進入點）
+import logging
+import os
+import uvicorn
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.events import EVENT_JOB_ERROR
+
+logging.basicConfig(level=logging.INFO)
+_log = logging.getLogger(__name__)
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+from config import CORS_ORIGINS, HOST, PORT, RELOAD, WORKER_CHECK_INTERVAL, WORKER_ENABLED
+from utils import free_port
+from database import init_db
+from routers import jobs
+from worker import process_pending_jobs
+
+# ============ 全局變量 ============
+scheduler = None
+
+
+# ============ Lifespan 事件處理 ============
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """應用啟動/關閉生命週期管理（替代 on_event）。"""
+    # Startup
+    global scheduler
+    init_db()
+    print("✓ Database initialized")
+    
+    if WORKER_ENABLED:
+        scheduler = BackgroundScheduler()
+        scheduler.add_listener(
+            lambda event: _log.error("[scheduler] job crashed: %s", event.exception, exc_info=event.traceback),
+            EVENT_JOB_ERROR,
+        )
+        scheduler.add_job(
+            process_pending_jobs,
+            "interval",
+            seconds=WORKER_CHECK_INTERVAL,
+            id="process_jobs",
+            max_instances=2,  # 允許最多 2 個並行實例，避免長任務期間 skip warning
+        )
+        scheduler.start()
+        _log.info("✓ Background scheduler started (check interval: %ss)", WORKER_CHECK_INTERVAL)
+    
+    yield  # 應用運行期間
+    
+    # Shutdown
+    if scheduler:
+        scheduler.shutdown(wait=True)
+        print("✓ Background scheduler stopped")
+
+    from routers.jobs import _solve_executor
+    _solve_executor.shutdown(wait=False)
+    print("✓ Solve thread pool stopped")
+
+
+# ============ FastAPI 應用初始化 ============
+app = FastAPI(
+    title="QUBO Optimization Platform",
+    description="Real-time job processing with persistent storage",
+    version="2.0.0",
+    lifespan=lifespan,  # 注入生命週期
+)
+
+# ============ CORS 設定 ============
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials="*" not in CORS_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ============ 路由註冊 ============
+app.include_router(jobs.router)
+
+
+# ============ 健康檢查端點 ============
+@app.get("/health")
+async def health_check():
+    """健康檢查端點。"""
+    return {"status": "ok"}
+
+
+# ============ 前端靜態檔托管（SPA） ============
+_DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "qubo-dashboard", "dist")
+_DIST_DIR = os.path.abspath(_DIST_DIR)
+
+if os.path.isdir(_DIST_DIR):
+    _assets_dir = os.path.join(_DIST_DIR, "assets")
+    if os.path.isdir(_assets_dir):
+        app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
+
+    _DIST_REAL = os.path.realpath(_DIST_DIR)
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        """SPA catch-all：將所有非 API 路徑導向 index.html。"""
+        # 防止路徑穿越攻擊：確保解析後的路徑仍在 dist 目錄內
+        file_path = os.path.realpath(os.path.join(_DIST_DIR, full_path))
+        if not file_path.startswith(_DIST_REAL + os.sep):
+            return FileResponse(os.path.join(_DIST_DIR, "index.html"))
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(_DIST_DIR, "index.html"))
+
+
+if __name__ == "__main__":
+    free_port(PORT)
+    uvicorn.run("main:app", host=HOST, port=PORT, reload=RELOAD)

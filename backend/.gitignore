@@ -1,0 +1,26 @@
+# 環境變數（含敏感設定，範本保留 .env.example）
+.env
+.env.local
+.env.*.local
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+database/
+
+# Virtual environments
+.venv
+
+
+# garbage*.log
+*.tmp
+qubo/.DS_Store
+.DS_Store
+
+# test
+knapsack_500.py
+knapsack_500_items.csv
