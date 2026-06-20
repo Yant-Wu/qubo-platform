@@ -1,10 +1,13 @@
 # 發布用 Compose 清單：直接拉取已發布的映像，不需要原始碼建置。
 # 使用方式：docker compose up -d
+#
+# 預設使用最新映像。若要固定到指定版本：
+# BACKEND_IMAGE_TAG=gpu-v1.0.0 FRONTEND_IMAGE_TAG=v1.0.0 docker compose up -d
 
 services:
 
   backend:
-    image: yantwu/qubo-backend:gpu-latest
+    image: yantwu/qubo-backend:${BACKEND_IMAGE_TAG:-gpu-latest}
     expose:
       - "8000"
     environment:
@@ -38,7 +41,7 @@ services:
       start_period: 20s
 
   frontend:
-    image: yantwu/qubo-frontend:latest
+    image: yantwu/qubo-frontend:${FRONTEND_IMAGE_TAG:-latest}
     ports:
       - "80:80"
     depends_on:
