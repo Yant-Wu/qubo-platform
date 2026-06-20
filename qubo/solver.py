@@ -154,7 +154,7 @@ def aeqts_solver(
     best_sol     = nbrs_init[sidx_init[0]].copy()
     best_energy  = float((best_sol @ Q_dev) @ best_sol)
 
-    record_interval   = max(1, num_iterations // 100)
+    record_interval   = 1
     ENTROPY_THRESHOLD = 0.02
 
     for it in range(num_iterations):

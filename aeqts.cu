@@ -204,7 +204,7 @@ int main(int argc, char* argv[]) {
     double global_best_energy = 1e15;
     vector<int> global_best_sol(total_vars, 0);
     vector<unsigned char> best_bits(total_vars);
-    int record_interval = max(1, iterations / 100);
+    int record_interval = 1;
     
     auto t_start = chrono::high_resolution_clock::now();
 
