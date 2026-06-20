@@ -1,0 +1,41 @@
+# Local environment configuration (keep only documented examples)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python, Node.js and build artifacts
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.coverage*
+**/coverage/
+**/.venv/
+**/node_modules/
+**/dist/
+**/build/
+**/*.egg-info/
+
+# Local runtime data and logs
+backend/database/
+**/*.db
+**/*.sqlite*
+**/*.log
+logs/
+
+# OS and editor files
+.DS_Store
+**/.DS_Store
+.vscode/
+.idea/
+
+# Locally generated test inputs and API captures
+/test.txt
+/test_items_*.csv
+/case3_items_*.csv
+/backend/knapsack_500.py
+/backend/knapsack_500_items.csv
+
+# Temporary migration safety copies
+.migration-backup/
+.monorepo-build/

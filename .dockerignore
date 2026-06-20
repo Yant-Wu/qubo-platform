@@ -1,0 +1,25 @@
+# ── Git ──────────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── macOS ────────────────────────────────────────────────────────────
+.DS_Store
+
+# ── Python ───────────────────────────────────────────────────────────
+**/__pycache__/
+**/*.py[cod]
+backend/.venv/
+backend/.env
+backend/database/*.db
+backend/database/*.db-shm
+backend/database/*.db-wal
+
+# ── Node.js ──────────────────────────────────────────────────────────
+qubo-dashboard/node_modules/
+qubo-dashboard/dist/
+qubo-dashboard/.env.development.local
+qubo-dashboard/.env.local
+
+# ── 其他 ─────────────────────────────────────────────────────────────
+參考資料/
+README.md
