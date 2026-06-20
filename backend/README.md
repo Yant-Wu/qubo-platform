@@ -127,14 +127,14 @@ docker run --rm --gpus all -p 8000:8000 qubo-backend:gpu
 
 GPU 映像需要 NVIDIA GPU 與 NVIDIA Container Toolkit；它內含 `solve_cuda`，因此無 GPU 主機請使用 CPU Dockerfile，不要把 GPU 映像當成 CPU fallback。
 
-根目錄的 `docker-compose.yml` 與 `docker-compose.release.yml` 都會拉取 `yantwu/qubo-backend:gpu-latest` 與前端映像，並在 80 埠提供網站：
+根目錄的 `docker-compose.yml` 是唯一的發布設定：它會拉取 `yantwu/qubo-backend:gpu-latest` 與前端映像，並在 80 埠提供網站：
 
 ```bash
 docker compose up -d
 docker compose logs -f
 ```
 
-兩份 Compose 設定都含 GPU reservation，適用於 NVIDIA 主機。
+此 Compose 設定含 GPU reservation，適用於具備 NVIDIA GPU 與 NVIDIA Container Toolkit 的主機。
 
 ## 專案結構
 

@@ -1,20 +1,13 @@
+# 發布用 Compose 清單：直接拉取已發布的映像，不需要原始碼建置。
+# 使用方式：docker compose up -d
+
 services:
 
-  # ── 後端：FastAPI + AEQTS Worker（GPU 加速版）────────────────────
   backend:
     image: yantwu/qubo-backend:gpu-latest
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    # 後端不對外暴露 port，只在內部 network 提供服務
     expose:
       - "8000"
     environment:
-      # 來源控制：僅允許 frontend container（nginx proxy）存取，內部已同源無需放行外部
       CORS_ORIGINS: "*"
       HOST: 0.0.0.0
       PORT: "8000"
@@ -22,12 +15,20 @@ services:
       WORKER_ENABLED: "true"
       WORKER_CHECK_INTERVAL: "2"
       DATABASE_URL: "sqlite:////data/qubo.db"
+      # 此 GPU 映像需要 NVIDIA Container Toolkit 與可用的 NVIDIA GPU。
       NVIDIA_VISIBLE_DEVICES: all
     volumes:
       - qubo_data:/data
     networks:
       - qubo_net
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     healthcheck:
       test: ["CMD", "/app/.venv/bin/python", "-c",
              "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
@@ -36,7 +37,6 @@ services:
       retries: 3
       start_period: 20s
 
-  # ── 前端：React + nginx（含 /api 反向代理） ──────────────────
   frontend:
     image: yantwu/qubo-frontend:latest
     ports:
