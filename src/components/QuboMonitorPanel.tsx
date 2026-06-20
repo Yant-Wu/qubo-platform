@@ -1,5 +1,5 @@
 // src/components/QuboMonitorPanel.tsx — 監控儀錶板：支援中英雙語切換
-import { useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Download, Play } from 'lucide-react';
 import type { JobDetail, SimParams } from '../types/job';
 import type { KnapsackSolveResponse } from '../types/job';
@@ -37,6 +37,7 @@ const i18n = {
     waitBackend: '後端尚未開始運算，請稍候。',
     tabMain: '綜合視圖 (Convergence & Q-bits)',
     tabEntropy: '系統平均熵 (Entropy)',
+    rangeLabel: '迭代視窗',
     chartTop: '最佳價值與能量收斂',
     chartBottom: 'Q-bit 量子態坍縮機率',
     loadTask: '載入任務資料中…',
@@ -58,6 +59,7 @@ const i18n = {
     waitBackend: 'Backend calculation pending, please wait.',
     tabMain: 'Main View (Convergence & Q-bits)',
     tabEntropy: 'System Avg Entropy',
+    rangeLabel: 'Iteration window',
     chartTop: 'Best Value & Energy Convergence',
     chartBottom: 'Q-bit Collapse Probability',
     loadTask: 'Loading task data...',
@@ -106,6 +108,65 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
   const displayTimeMs = solveResult?.computation_time_ms || detail?.computation_time_ms;
 
   const [chartMode, setChartMode] = useState<'main' | 'entropy'>('main');
+  const historyMaxIteration = simHistory.reduce(
+    (maximum, point) => Math.max(maximum, Number(point.iteration) || 0),
+    0,
+  );
+  const configuredIteration = Number(paramCoolingRate) || 0;
+  const maxIteration = Math.max(1, historyMaxIteration || configuredIteration);
+  const [visibleEnd, setVisibleEnd] = useState(maxIteration);
+  const rangeTimerRef = useRef<number | null>(null);
+  const pendingRangeEndRef = useRef(maxIteration);
+  const previousMaxIterationRef = useRef(maxIteration);
+  const rangeTouchedRef = useRef(false);
+  const rangeInputRef = useRef<HTMLInputElement | null>(null);
+  const rangeValueRef = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    const clampEnd = (value: number) => Math.max(1, Math.min(maxIteration, value || maxIteration));
+    const wasAtMaximum = pendingRangeEndRef.current >= previousMaxIterationRef.current;
+    const nextEnd = !rangeTouchedRef.current || wasAtMaximum
+      ? maxIteration
+      : clampEnd(pendingRangeEndRef.current);
+
+    setVisibleEnd(nextEnd);
+    pendingRangeEndRef.current = nextEnd;
+    previousMaxIterationRef.current = maxIteration;
+    if (rangeInputRef.current) rangeInputRef.current.value = String(nextEnd);
+    if (rangeValueRef.current) rangeValueRef.current.textContent = `0-${nextEnd}`;
+  }, [maxIteration]);
+
+  useEffect(() => () => {
+    if (rangeTimerRef.current !== null) window.clearTimeout(rangeTimerRef.current);
+  }, []);
+
+  const canAdjustRange = maxIteration > 1;
+  const chartViewStart = 0;
+  const chartViewEnd = Math.max(1, Math.min(maxIteration, visibleEnd));
+
+  const scheduleVisibleEnd = useCallback((nextEnd: number) => {
+    pendingRangeEndRef.current = nextEnd;
+    if (rangeTimerRef.current !== null) return;
+    rangeTimerRef.current = window.setTimeout(() => {
+      setVisibleEnd(pendingRangeEndRef.current);
+      rangeTimerRef.current = null;
+    }, 80);
+  }, []);
+
+  const handleRangeChange = useCallback((nextEnd: number) => {
+    rangeTouchedRef.current = true;
+    pendingRangeEndRef.current = nextEnd;
+    if (rangeValueRef.current) rangeValueRef.current.textContent = `0-${nextEnd}`;
+    scheduleVisibleEnd(nextEnd);
+  }, [scheduleVisibleEnd]);
+
+  const flushRangeChange = useCallback(() => {
+    if (rangeTimerRef.current !== null) {
+      window.clearTimeout(rangeTimerRef.current);
+      rangeTimerRef.current = null;
+    }
+    setVisibleEnd(pendingRangeEndRef.current);
+  }, []);
 
   const handleExport = () => {
     const originalItems = (detail?.problem_data?.items as Array<{ name: string }> | undefined) ?? [];
@@ -277,6 +338,29 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
                 >
                   {t.tabEntropy}
                 </button>
+                {chartMode === 'main' && (
+                  <div className="ml-auto flex min-w-0 flex-1 max-w-4xl items-center gap-3 text-xs text-gray-300">
+                    <span className="shrink-0 font-semibold text-gray-400 uppercase tracking-wider">{t.rangeLabel}</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={maxIteration}
+                      step={1}
+                      defaultValue={maxIteration}
+                      ref={rangeInputRef}
+                      disabled={!canAdjustRange}
+                      onInput={(e) => handleRangeChange(Number(e.currentTarget.value))}
+                      onPointerUp={flushRangeChange}
+                      onBlur={flushRangeChange}
+                      onKeyUp={flushRangeChange}
+                      className="h-2 min-w-32 flex-1 cursor-pointer accent-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={t.rangeLabel}
+                    />
+                    <span ref={rangeValueRef} className="w-28 shrink-0 text-right font-mono text-indigo-300">
+                      0-{maxIteration}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 overflow-hidden relative">
@@ -287,7 +371,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
                         {t.chartTop}
                       </div>
                       <div className="flex-1 min-h-0">
-                        <EnergyConvergenceChart history={simHistory} lang={lang} />
+                        <EnergyConvergenceChart history={simHistory} lang={lang} visibleStart={chartViewStart} visibleEnd={chartViewEnd} />
                       </div>
                     </div>
                     <div className="flex-[55] flex flex-col min-h-0 bg-gray-900/20 pt-2">
@@ -295,7 +379,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
                         {t.chartBottom}
                       </div>
                       <div className="flex-1 min-h-0">
-                        <QubitProbChart history={simHistory} lang={lang} />
+                        <QubitProbChart history={simHistory} lang={lang} visibleStart={chartViewStart} visibleEnd={chartViewEnd} />
                       </div>
                     </div>
                   </div>

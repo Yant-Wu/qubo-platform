@@ -1,4 +1,5 @@
 // src/components/EnergyConvergenceChart.tsx — 能量收斂折線圖 (支援雙語)
+import { memo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { HistoryDataPoint } from '../types/job';
 
@@ -6,12 +7,21 @@ interface Props {
   history: HistoryDataPoint[];
   compact?: boolean;
   lang?: 'zh' | 'en'; // 💡 接收語言屬性
+  visibleStart?: number;
+  visibleEnd?: number;
 }
 
-export default function EnergyConvergenceChart({ history, compact = false, lang = 'zh' }: Props) {
+function EnergyConvergenceChart({ history, compact = false, lang = 'zh', visibleStart, visibleEnd }: Props) {
   if (history.length === 0) return null;
 
   const hasQE = history.some((d) => d.qubo_energy != null);
+  const lastIteration = history[history.length - 1]?.iteration ?? 1;
+  // Keep Iteration in a fixed-width column that starts at QUBO Energy's
+  // original title position, without changing the QUBO axis title itself.
+  const axisLabelColumnWidth = 72;
+  const chartRightGutter = hasQE ? 70 : 20;
+  const axisTickFontSize = 14;
+  const axisTitleFontSize = 15;
 
   // 💡 根據語言設定 Tooltip 文字
   const tooltipText = {
@@ -29,10 +39,10 @@ export default function EnergyConvergenceChart({ history, compact = false, lang 
     backgroundColor: 'transparent',
     grid: compact
       ? { top: 6, right: 6, bottom: 6, left: 6 }
-      : { top: 45, right: hasQE ? 70 : 20, bottom: 40, left: 65 },
+      : { top: 48, right: chartRightGutter, bottom: 60, left: 70 },
     legend: compact ? undefined : hasQE ? {
       top: 0,
-      right: hasQE ? 70 : 20,
+      left: 'center',
       textStyle: { color: '#e5e7eb', fontSize: 13 },
       itemWidth: 16,
       itemHeight: 10,
@@ -48,34 +58,50 @@ export default function EnergyConvergenceChart({ history, compact = false, lang 
         },
       },
     } : undefined,
+    graphic: compact ? undefined : [
+      {
+        type: 'text',
+        right: chartRightGutter,
+        bottom: 3,
+        silent: true,
+        style: {
+          text: 'Iteration',
+          width: axisLabelColumnWidth,
+          fill: '#e5e7eb',
+          font: `${axisTitleFontSize}px sans-serif`,
+          textAlign: 'left',
+          textVerticalAlign: 'top',
+        },
+      },
+    ],
     xAxis: {
       type: 'value',
-      name: compact ? '' : 'Iteration',
-      nameTextStyle: { color: '#e5e7eb', fontSize: 13 },
       axisLine: { lineStyle: { color: '#374151' } },
       axisTick: { show: !compact, lineStyle: { color: '#374151' } },
-      axisLabel: { show: !compact, color: '#e5e7eb', fontSize: 13 },
+      axisLabel: { show: !compact, color: '#e5e7eb', fontSize: axisTickFontSize, margin: 9 },
       splitLine: { lineStyle: { color: '#1f2937' } },
-      min: 1,
-      max: history[history.length - 1]?.iteration ?? 1,
+      min: visibleStart ?? 1,
+      max: visibleEnd ?? lastIteration,
     },
     yAxis: [
       {
         type: 'value',
         name: compact ? '' : 'Best Value',
-        nameTextStyle: { color: '#e5e7eb', fontSize: 13, align: 'left' },
+        nameTextStyle: { color: '#e5e7eb', fontSize: axisTitleFontSize, align: 'left' },
         axisLine: { lineStyle: { color: '#374151' } },
         axisTick: { show: !compact, lineStyle: { color: '#374151' } },
-        axisLabel: { show: !compact, color: '#e5e7eb', fontSize: 13 },
+        axisLabel: { show: !compact, color: '#e5e7eb', fontSize: axisTickFontSize },
         splitLine: { lineStyle: { color: '#1f2937' } },
       },
       hasQE ? {
         type: 'value',
         name: compact ? '' : 'QUBO Energy',
-        nameTextStyle: { color: '#e5e7eb', fontSize: 13, align: 'right' },
+        // Place the title on the outside of the right Y axis instead of
+        // extending back over the plot area.
+        nameTextStyle: { color: '#e5e7eb', fontSize: axisTitleFontSize, align: 'left' },
         axisLine: { lineStyle: { color: '#374151' } },
         axisTick: { show: !compact, lineStyle: { color: '#374151' } },
-        axisLabel: { show: !compact, color: '#e5e7eb', fontSize: 13 },
+        axisLabel: { show: !compact, color: '#e5e7eb', fontSize: axisTickFontSize },
         splitLine: { show: false },
       } : undefined,
     ].filter(Boolean),
@@ -93,20 +119,28 @@ export default function EnergyConvergenceChart({ history, compact = false, lang 
       {
         name: 'Best Objective', type: 'line', yAxisIndex: 0,
         data: history.map((d) => [d.iteration, d.value]),
-        symbol: 'none', lineStyle: { color: '#34d399', width: 2 },
+        symbol: 'circle', symbolSize: 5, showSymbol: false,
+        itemStyle: { color: '#22c55e' },
+        lineStyle: { color: '#22c55e', width: 2 },
         areaStyle: {
-          color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(52,211,153,0.25)' }, { offset: 1, color: 'rgba(52,211,153,0.00)' }] }
+          color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(34,197,94,0.25)' }, { offset: 1, color: 'rgba(34,197,94,0.00)' }] }
         },
         smooth: 0.3,
       },
       ...(hasQE ? [{
         name: 'QUBO Energy', type: 'line', yAxisIndex: 1,
         data: history.filter((d) => d.qubo_energy != null).map((d) => [d.iteration, d.qubo_energy as number]),
-        symbol: 'none', lineStyle: { color: '#818cf8', width: 1.5, type: 'dashed' },
+        symbol: 'circle', symbolSize: 5, showSymbol: false,
+        itemStyle: { color: '#3b82f6' },
+        lineStyle: { color: '#3b82f6', width: 1.5, type: 'dashed' },
         smooth: 0.3,
       }] : []),
     ],
   };
 
-  return <ReactECharts option={option} style={{ width: '100%', height: '100%' }} opts={{ renderer: 'canvas' }} />;
+  // Recreate the option on updates.  ECharts otherwise merges `graphic`
+  // entries by array index, which can leave an old Iteration label on screen.
+  return <ReactECharts option={option} notMerge style={{ width: '100%', height: '100%' }} opts={{ renderer: 'canvas' }} />;
 }
+
+export default memo(EnergyConvergenceChart);

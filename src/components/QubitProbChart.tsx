@@ -1,14 +1,20 @@
 // src/components/QubitProbChart.tsx — Q-bit 機率變化圖 (支援雙語)
+import { memo, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { HistoryDataPoint } from '../types/job';
 
 interface Props {
   history: HistoryDataPoint[];
   lang?: 'zh' | 'en'; // 💡 接收語言屬性
+  visibleStart?: number;
+  visibleEnd?: number;
 }
 
-export default function QubitProbChart({ history, lang = 'zh' }: Props) {
-  const data = history.filter((d) => Array.isArray(d.qubit_probs) && d.qubit_probs.length > 0);
+function QubitProbChart({ history, lang = 'zh', visibleStart, visibleEnd }: Props) {
+  const data = useMemo(
+    () => history.filter((d) => Array.isArray(d.qubit_probs) && d.qubit_probs.length > 0),
+    [history],
+  );
   
   if (data.length === 0) {
     return (
@@ -19,8 +25,9 @@ export default function QubitProbChart({ history, lang = 'zh' }: Props) {
   }
 
   const numQubits = (data[0].qubit_probs as number[]).length;
-  const iterations = data.map(d => d.iteration);
-  const maxIter = iterations[iterations.length - 1] ?? 1;
+  const maxIter = data[data.length - 1]?.iteration ?? 1;
+  const viewStart = visibleStart ?? 0;
+  const viewEnd = visibleEnd ?? maxIter;
 
   return (
     <div className="w-full h-full overflow-y-auto px-4 pb-4">
@@ -31,17 +38,17 @@ export default function QubitProbChart({ history, lang = 'zh' }: Props) {
           const option = {
             animation: false,
             tooltip: { show: false },
-            grid: { top: 15, right: 10, bottom: 25, left: 35 }, 
+            grid: { top: 15, right: 10, bottom: 25, left: 35 },
             xAxis: {
               type: 'value',
               name: 'Iter',
               nameLocation: 'middle',
               nameGap: 12,
               nameTextStyle: { color: '#9ca3af', fontSize: 10, fontWeight: 'bold' },
-              axisLabel: { show: false }, 
+              axisLabel: { show: false },
               splitLine: { lineStyle: { color: '#374151', type: 'dashed' } },
-              min: 0,
-              max: maxIter,
+              min: viewStart,
+              max: viewEnd,
             },
             yAxis: {
               type: 'value',
@@ -78,3 +85,5 @@ export default function QubitProbChart({ history, lang = 'zh' }: Props) {
     </div>
   );
 }
+
+export default memo(QubitProbChart);
