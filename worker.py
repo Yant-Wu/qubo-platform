@@ -85,6 +85,8 @@ def _simulate_job(db: Session, job: Job):
     import time as _time
     run_start = _time.time()
     best_result = None
+    best_dashboard_objective = 0.0 if qubo_type == "knapsack" else float("-inf")
+    best_dashboard_energy = float("inf")
 
     use_cuda = qubo_type == "knapsack" and is_cuda_available()
     
@@ -109,13 +111,31 @@ def _simulate_job(db: Session, job: Job):
     # 💡 逐筆接收並即時存入 DB (Streaming)
     for data in solver_gen:
         if data.get("type") == "progress":
+            objective = float(data["objective"])
+            is_feasible = data.get("is_feasible")
+
+            # Dashboard 語意：
+            # value = 歷史最佳 objective（背包只採計可行解）
+            # qubo_energy = 歷史最佳 QUBO energy（越小越好）
+            if qubo_type == "knapsack":
+                if is_feasible is True:
+                    best_dashboard_objective = max(best_dashboard_objective, objective)
+            else:
+                best_dashboard_objective = max(best_dashboard_objective, objective)
+
+            energy = data.get("energy")
+            if energy is None:
+                energy = data.get("current_energy")
+            if energy is not None:
+                best_dashboard_energy = min(best_dashboard_energy, float(energy))
+
             db.add(JobHistory(
                 job_id=job.id,
                 iteration=data["iteration"],
-                value=round(data["objective"], 6),
-                qubo_energy=round(data.get("current_energy"), 6) if data.get("current_energy") is not None else None,
+                value=round(best_dashboard_objective, 6),
+                qubo_energy=round(best_dashboard_energy, 6) if best_dashboard_energy < float("inf") else None,
                 entropy=round(data.get("entropy"), 6) if data.get("entropy") is not None else None,
-                is_feasible=data.get("is_feasible"),
+                is_feasible=is_feasible,
                 qubit_probs=data.get("qubit_probs"),
             ))
             db.commit() # 每次都 commit 讓前端拉得到

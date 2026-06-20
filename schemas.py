@@ -27,7 +27,7 @@ class HistoryPoint(BaseModel):
     """單一歷史點 (iteration + value)。"""
     iteration: int
     value: float
-    qubo_energy: Optional[float] = None       # 當前迭代最佳候選的 QUBO 能量
+    qubo_energy: Optional[float] = None       # 歷史最佳 QUBO 能量（越小越好）
     entropy: Optional[float] = None           # AEQTS Q-bit entropy
     is_feasible: Optional[bool] = None        # 該迭代最佳解是否滿足約束
     qubit_probs: Optional[List[float]] = None # P(qubit_i=1)=β²，供 Qubit Probability Monitor 顯示
