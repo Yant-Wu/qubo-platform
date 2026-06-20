@@ -213,7 +213,7 @@ export default function QuboSetupPage({
   // Slack variables：用於將不等式約束轉成等式，K = ceil(log2(C+1))
   const slackInfo = useMemo(() => {
     if (!Number.isFinite(capacityNumber) || capacityNumber <= 0) return null;
-    const autoK = Math.ceil(Math.log2(capacityNumber + 1));
+    const autoK = Math.max(1, Math.ceil(Math.log2(capacityNumber + 1)));
     const userK = slackBits !== '' ? parseInt(slackBits, 10) : null;
     const K = (userK !== null && userK >= 1) ? userK : autoK;
     const n = normalizedItems.length;
