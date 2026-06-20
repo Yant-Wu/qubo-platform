@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/* 全域樣式 */
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-gray-950 text-gray-100 antialiased;
+  font-family: 'Inter', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+}
+
+/* 自訂捲軸 */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.3);
+  border-radius: 9999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.5);
+}
+
+/* select 箭頭隱藏（用自訂 icon 取代） */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}

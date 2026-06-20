@@ -1,0 +1,146 @@
+// src/components/EnergyConvergenceChart.tsx — 能量收斂折線圖 (支援雙語)
+import { memo } from 'react';
+import ReactECharts from 'echarts-for-react';
+import type { HistoryDataPoint } from '../types/job';
+
+interface Props {
+  history: HistoryDataPoint[];
+  compact?: boolean;
+  lang?: 'zh' | 'en'; // 💡 接收語言屬性
+  visibleStart?: number;
+  visibleEnd?: number;
+}
+
+function EnergyConvergenceChart({ history, compact = false, lang = 'zh', visibleStart, visibleEnd }: Props) {
+  if (history.length === 0) return null;
+
+  const hasQE = history.some((d) => d.qubo_energy != null);
+  const lastIteration = history[history.length - 1]?.iteration ?? 1;
+  // Keep Iteration in a fixed-width column that starts at QUBO Energy's
+  // original title position, without changing the QUBO axis title itself.
+  const axisLabelColumnWidth = 72;
+  const chartRightGutter = hasQE ? 70 : 20;
+  const axisTickFontSize = 14;
+  const axisTitleFontSize = 15;
+
+  // 💡 根據語言設定 Tooltip 文字
+  const tooltipText = {
+    zh: {
+      bestDesc: '歷史最佳解的總價值<br/>只增不減，最右端即為最終答案',
+      quboDesc: '含懲罰項的能量值，用來導引搜索方向<br/>數值越負代表解越好且越可行'
+    },
+    en: {
+      bestDesc: 'Total value of the best historical solution<br/>Only increases, rightmost is the final answer',
+      quboDesc: 'Energy value with penalty, guides search direction<br/>More negative means a better and feasible solution'
+    }
+  };
+
+  const option = {
+    backgroundColor: 'transparent',
+    grid: compact
+      ? { top: 6, right: 6, bottom: 6, left: 6 }
+      : { top: 48, right: chartRightGutter, bottom: 60, left: 70 },
+    legend: compact ? undefined : hasQE ? {
+      top: 0,
+      left: 'center',
+      textStyle: { color: '#e5e7eb', fontSize: 13 },
+      itemWidth: 16,
+      itemHeight: 10,
+      tooltip: {
+        show: true,
+        backgroundColor: '#1f2937',
+        borderColor: '#374151',
+        textStyle: { color: '#e5e7eb', fontSize: 13 },
+        formatter: (params: { name: string }) => {
+          if (params.name === 'Best Objective') return tooltipText[lang].bestDesc;
+          if (params.name === 'QUBO Energy') return tooltipText[lang].quboDesc;
+          return params.name;
+        },
+      },
+    } : undefined,
+    graphic: compact ? undefined : [
+      {
+        type: 'text',
+        right: chartRightGutter,
+        bottom: 3,
+        silent: true,
+        style: {
+          text: 'Iteration',
+          width: axisLabelColumnWidth,
+          fill: '#e5e7eb',
+          font: `${axisTitleFontSize}px sans-serif`,
+          textAlign: 'left',
+          textVerticalAlign: 'top',
+        },
+      },
+    ],
+    xAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: '#374151' } },
+      axisTick: { show: !compact, lineStyle: { color: '#374151' } },
+      axisLabel: { show: !compact, color: '#e5e7eb', fontSize: axisTickFontSize, margin: 9 },
+      splitLine: { lineStyle: { color: '#1f2937' } },
+      min: visibleStart ?? 1,
+      max: visibleEnd ?? lastIteration,
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: compact ? '' : 'Best Value',
+        nameTextStyle: { color: '#e5e7eb', fontSize: axisTitleFontSize, align: 'left' },
+        axisLine: { lineStyle: { color: '#374151' } },
+        axisTick: { show: !compact, lineStyle: { color: '#374151' } },
+        axisLabel: { show: !compact, color: '#e5e7eb', fontSize: axisTickFontSize },
+        splitLine: { lineStyle: { color: '#1f2937' } },
+      },
+      hasQE ? {
+        type: 'value',
+        name: compact ? '' : 'QUBO Energy',
+        // Place the title on the outside of the right Y axis instead of
+        // extending back over the plot area.
+        nameTextStyle: { color: '#e5e7eb', fontSize: axisTitleFontSize, align: 'left' },
+        axisLine: { lineStyle: { color: '#374151' } },
+        axisTick: { show: !compact, lineStyle: { color: '#374151' } },
+        axisLabel: { show: !compact, color: '#e5e7eb', fontSize: axisTickFontSize },
+        splitLine: { show: false },
+      } : undefined,
+    ].filter(Boolean),
+    tooltip: compact ? { show: false } : {
+      trigger: 'axis',
+      axisPointer: { type: 'line', snap: true, lineStyle: { color: '#6b7280', type: 'dashed', width: 1 } },
+      backgroundColor: '#1f2937',
+      borderColor: '#374151',
+      textStyle: { color: '#e5e7eb', fontSize: 14 },
+      formatter: (params: { seriesName: string; value: number[] }[]) =>
+        params.map((p) => `${p.seriesName}: <b>${p.value[1].toFixed(4)}</b>`).join('<br/>') + 
+        `<br/><span style="color:#6b7280">Iter ${params[0]?.value[0]}</span>`,
+    },
+    series: [
+      {
+        name: 'Best Objective', type: 'line', yAxisIndex: 0,
+        data: history.map((d) => [d.iteration, d.value]),
+        symbol: 'circle', symbolSize: 5, showSymbol: false,
+        itemStyle: { color: '#22c55e' },
+        lineStyle: { color: '#22c55e', width: 2 },
+        areaStyle: {
+          color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(34,197,94,0.25)' }, { offset: 1, color: 'rgba(34,197,94,0.00)' }] }
+        },
+        smooth: 0.3,
+      },
+      ...(hasQE ? [{
+        name: 'QUBO Energy', type: 'line', yAxisIndex: 1,
+        data: history.filter((d) => d.qubo_energy != null).map((d) => [d.iteration, d.qubo_energy as number]),
+        symbol: 'circle', symbolSize: 5, showSymbol: false,
+        itemStyle: { color: '#3b82f6' },
+        lineStyle: { color: '#3b82f6', width: 1.5, type: 'dashed' },
+        smooth: 0.3,
+      }] : []),
+    ],
+  };
+
+  // Recreate the option on updates.  ECharts otherwise merges `graphic`
+  // entries by array index, which can leave an old Iteration label on screen.
+  return <ReactECharts option={option} notMerge style={{ width: '100%', height: '100%' }} opts={{ renderer: 'canvas' }} />;
+}
+
+export default memo(EnergyConvergenceChart);
