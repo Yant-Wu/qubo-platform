@@ -16,10 +16,9 @@ function EnergyConvergenceChart({ history, compact = false, lang = 'zh', visible
 
   const hasQE = history.some((d) => d.qubo_energy != null);
   const lastIteration = history[history.length - 1]?.iteration ?? 1;
-  // Keep Iteration in a fixed-width column that starts at QUBO Energy's
-  // original title position, without changing the QUBO axis title itself.
+  // Keep Iteration in a fixed-width column beside the average-energy axis.
   const axisLabelColumnWidth = 72;
-  const chartRightGutter = hasQE ? 70 : 20;
+  const chartRightGutter = hasQE ? 130 : 20;
   const axisTickFontSize = 14;
   const axisTitleFontSize = 15;
 
@@ -27,11 +26,11 @@ function EnergyConvergenceChart({ history, compact = false, lang = 'zh', visible
   const tooltipText = {
     zh: {
       bestDesc: '歷史最佳解的總價值<br/>只增不減，最右端即為最終答案',
-      quboDesc: '含懲罰項的能量值，用來導引搜索方向<br/>數值越負代表解越好且越可行'
+      quboDesc: '當代所有候選解的平均 QUBO energy<br/>整體下降代表候選族群逐漸收斂'
     },
     en: {
       bestDesc: 'Total value of the best historical solution<br/>Only increases, rightmost is the final answer',
-      quboDesc: 'Energy value with penalty, guides search direction<br/>More negative means a better and feasible solution'
+      quboDesc: 'Mean QUBO energy of all candidates in this iteration<br/>A downward trend indicates population convergence'
     }
   };
 
@@ -53,7 +52,7 @@ function EnergyConvergenceChart({ history, compact = false, lang = 'zh', visible
         textStyle: { color: '#e5e7eb', fontSize: 13 },
         formatter: (params: { name: string }) => {
           if (params.name === 'Best Objective') return tooltipText[lang].bestDesc;
-          if (params.name === 'QUBO Energy') return tooltipText[lang].quboDesc;
+          if (params.name === 'Average QUBO Energy') return tooltipText[lang].quboDesc;
           return params.name;
         },
       },
@@ -95,9 +94,8 @@ function EnergyConvergenceChart({ history, compact = false, lang = 'zh', visible
       },
       hasQE ? {
         type: 'value',
-        name: compact ? '' : 'QUBO Energy',
-        // Place the title on the outside of the right Y axis instead of
-        // extending back over the plot area.
+        name: compact ? '' : 'Average QUBO Energy',
+        // Place the title outside the right Y axis.
         nameTextStyle: { color: '#e5e7eb', fontSize: axisTitleFontSize, align: 'left' },
         axisLine: { lineStyle: { color: '#374151' } },
         axisTick: { show: !compact, lineStyle: { color: '#374151' } },
@@ -128,7 +126,7 @@ function EnergyConvergenceChart({ history, compact = false, lang = 'zh', visible
         smooth: 0.3,
       },
       ...(hasQE ? [{
-        name: 'QUBO Energy', type: 'line', yAxisIndex: 1,
+        name: 'Average QUBO Energy', type: 'line', yAxisIndex: 1,
         data: history.filter((d) => d.qubo_energy != null).map((d) => [d.iteration, d.qubo_energy as number]),
         symbol: 'circle', symbolSize: 5, showSymbol: false,
         itemStyle: { color: '#3b82f6' },

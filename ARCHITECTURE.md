@@ -147,7 +147,7 @@ scheduler.add_job(process_pending_jobs, "interval", seconds=WORKER_CHECK_INTERVA
 | `job_id` | FK(jobs.id) | 關聯主表（CASCADE 刪除） |
 | `iteration` | Integer | 迭代編號 |
 | `value` | Float | 真實目標值（背包：總價值，MaxCut：切割值） |
-| `qubo_energy` | Float | 當前迭代的 QUBO 能量（非累積最佳） |
+| `qubo_energy` | Float | 當前迭代所有候選解的平均 QUBO 能量 |
 | `entropy` | Float | Q-bit 族群平均 von Neumann entropy |
 | `is_feasible` | Boolean | 該迭代最佳解是否滿足約束 |
 | `qubit_probs` | JSON | 各 qubit 的 β²（即 P(qubit=1)），陣列 |
@@ -454,7 +454,7 @@ Base URL: `http://localhost:8000`
 | 欄位 | 說明 |
 |------|------|
 | `value` | 真實目標值（背包總價值，越大越好）|
-| `qubo_energy` | 當前迭代最佳候選的 QUBO 能量（非累積最佳）|
+| `qubo_energy` | 當前迭代所有候選解的平均 QUBO 能量 |
 | `entropy` | 族群 von Neumann entropy（趨近 0 表示收斂）|
 | `is_feasible` | 是否滿足容量約束 |
 | `qubit_probs` | 各 qubit 的 β²，即 P(qubit=1) |
@@ -511,7 +511,7 @@ CREATE TABLE job_history (
     job_id       VARCHAR(36) REFERENCES jobs(id) ON DELETE CASCADE,
     iteration    INTEGER  NOT NULL,
     value        FLOAT    NOT NULL,              -- 目標值
-    qubo_energy  FLOAT,                          -- 當前迭代能量
+    qubo_energy  FLOAT,                          -- 當前迭代平均能量
     entropy      FLOAT,                          -- Q-bit entropy
     is_feasible  BOOLEAN,
     qubit_probs  JSON,                           -- β² 陣列
@@ -543,7 +543,7 @@ Sidebar（選取歷史任務，也可跳回 QuboMonitorPanel）
 | `ParamsPage` | 任務基本設定（名稱、問題類型、timeout、N、迭代數）|
 | `QuboSetupPage` | 問題具體設定（物品清單、容量、懲罰係數）一行批次新增 |
 | `QuboMonitorPanel` | 監控主畫面，含統計面板 + 兩個圖表 |
-| `EnergyConvergenceChart` | 收斂曲線（Best Objective + QUBO Energy 雙 Y 軸）|
+| `EnergyConvergenceChart` | 收斂曲線（Best Objective + Average QUBO Energy 雙 Y 軸）|
 | `EntropyChart` | Q-bit Entropy 折線圖 |
 
 ### 9.3 Hooks
@@ -560,7 +560,7 @@ Sidebar（選取歷史任務，也可跳回 QuboMonitorPanel）
 
 **EnergyConvergenceChart**：
 - 主 Y 軸（左）：Best Objective（真實目標值，越大越好）
-- 副 Y 軸（右）：QUBO Energy（能量，越小越好）
+- 副 Y 軸（右）：Average QUBO Energy（每代候選解平均能量，整體越低表示族群逐漸收斂）
 - X 軸：Iteration
 - `compact` 模式：隱藏軸標籤/刻度/圖例（用於小圖面板）
 
