@@ -26,7 +26,7 @@ function QubitProbChart({ history, lang = 'zh', visibleStart, visibleEnd }: Prop
 
   const numQubits = (data[0].qubit_probs as number[]).length;
   const maxIter = data[data.length - 1]?.iteration ?? 1;
-  const viewStart = visibleStart ?? 0;
+  const viewStart = visibleStart ?? 1;
   const viewEnd = visibleEnd ?? maxIter;
 
   return (

@@ -181,7 +181,7 @@ def aeqts_solver(
             # 💡 Python 版也改為即時 yield
             yield {
                 "type"          : "progress",
-                "iteration"     : it,
+                "iteration"     : it + 1,
                 "energy"        : best_energy,
                 "current_energy": this_energy,
                 "average_energy": average_energy,

@@ -254,7 +254,7 @@ int main(int argc, char* argv[]) {
                 if (i < total_vars - 1) probs_json << ",";
             }
 
-            cout << "{\"type\":\"progress\", \"iteration\":" << it 
+            cout << "{\"type\":\"progress\", \"iteration\":" << (it + 1)
                  << ", \"energy\":" << jdbl(global_best_energy) 
                  << ", \"current_energy\":" << jdbl(cur_best_energy)
                  << ", \"average_energy\":" << jdbl(average_energy)

@@ -32,7 +32,7 @@ export default function EntropyChart({ history, compact = false }: Props) {
       axisTick: { show: !compact, lineStyle: { color: '#374151' } },
       axisLabel: { show: !compact, color: '#6b7280', fontSize: 10 },
       splitLine: { lineStyle: { color: '#1f2937' } },
-      min: 0,
+      min: 1,
       max: data[data.length - 1]?.iteration ?? 1,
     },
     yAxis: {

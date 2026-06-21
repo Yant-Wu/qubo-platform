@@ -133,7 +133,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
     pendingRangeEndRef.current = nextEnd;
     previousMaxIterationRef.current = maxIteration;
     if (rangeInputRef.current) rangeInputRef.current.value = String(nextEnd);
-    if (rangeValueRef.current) rangeValueRef.current.textContent = `0-${nextEnd}`;
+    if (rangeValueRef.current) rangeValueRef.current.textContent = `1-${nextEnd}`;
   }, [maxIteration]);
 
   useEffect(() => () => {
@@ -141,7 +141,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
   }, []);
 
   const canAdjustRange = maxIteration > 1;
-  const chartViewStart = 0;
+  const chartViewStart = 1;
   const chartViewEnd = Math.max(1, Math.min(maxIteration, visibleEnd));
 
   const scheduleVisibleEnd = useCallback((nextEnd: number) => {
@@ -156,7 +156,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
   const handleRangeChange = useCallback((nextEnd: number) => {
     rangeTouchedRef.current = true;
     pendingRangeEndRef.current = nextEnd;
-    if (rangeValueRef.current) rangeValueRef.current.textContent = `0-${nextEnd}`;
+    if (rangeValueRef.current) rangeValueRef.current.textContent = `1-${nextEnd}`;
     scheduleVisibleEnd(nextEnd);
   }, [scheduleVisibleEnd]);
 
@@ -357,7 +357,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
                       aria-label={t.rangeLabel}
                     />
                     <span ref={rangeValueRef} className="w-28 shrink-0 text-right font-mono text-indigo-300">
-                      0-{maxIteration}
+                      1-{maxIteration}
                     </span>
                   </div>
                 )}
