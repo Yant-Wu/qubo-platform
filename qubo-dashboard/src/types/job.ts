@@ -51,7 +51,7 @@ export interface HistoryDataPoint {
   qubo_energy?: number | null;    // 歷史最低 QUBO 能量（越小越好）
   entropy?: number | null;        // AEQTS Q-bit entropy（0=完全收斂，1=最大不確定）
   qubit_probs?: number[];
-  is_feasible?: boolean | null;
+  // is_feasible?: boolean | null;  // Feasible Solutions 指標已停用
   [key: string]: unknown;
 }
 

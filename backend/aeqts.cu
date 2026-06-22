@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
             for(int i=0; i<n_items; ++i) {
                 if (global_best_sol[i]) { obj_val += values[i]; weight_sum += weights[i]; }
             }
-            bool is_feasible = (weight_sum <= capacity);
+            // const bool is_feasible = (weight_sum <= capacity);  // Feasible Solutions 指標已停用
             
             ostringstream probs_json;
             for(int i=0; i<total_vars; ++i) {
@@ -257,7 +257,7 @@ int main(int argc, char* argv[]) {
                  << ", \"current_energy\":" << jdbl(cur_best_energy)
                  << ", \"objective\":" << jdbl(obj_val)
                  << ", \"entropy\":" << jdbl(current_entropy)
-                 << ", \"is_feasible\":" << (is_feasible ? "true" : "false")
+                 // << ", \"is_feasible\":" << (is_feasible ? "true" : "false")
                  << ", \"qubit_probs\":[" << probs_json.str() << "]}" << endl;
         }
     }

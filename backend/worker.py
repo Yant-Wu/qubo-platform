@@ -30,8 +30,8 @@ def _is_better_experiment(candidate: Dict[str, Any], incumbent: Optional[Dict[st
     """合法解優先；同為合法（或同為不合法）時依價值、收斂速度、能量排序。"""
     if incumbent is None:
         return True
-    if candidate["is_feasible"] != incumbent["is_feasible"]:
-        return candidate["is_feasible"]
+    if candidate["is_valid_solution"] != incumbent["is_valid_solution"]:
+        return candidate["is_valid_solution"]
     if candidate["objective"] != incumbent["objective"]:
         return candidate["objective"] > incumbent["objective"]
     if candidate["convergence_iteration"] != incumbent["convergence_iteration"]:
@@ -59,16 +59,8 @@ def process_pending_jobs():
     finally:
         db.close()
 
-def _make_feasibility_checker(qubo_type: str, raw: Dict[str, Any]):
-    if qubo_type == "knapsack":
-        items = raw.get("items", [])
-        max_weight = float(raw.get("max_weight", float("inf")))
-        weights = [float(it["weight"]) for it in items]
-        def check_knapsack(x) -> bool:
-            return float(sum(w * int(xi) for w, xi in zip(weights, x))) <= max_weight
-        return check_knapsack
-    if qubo_type == "max_cut": return lambda x: True
-    return None
+# def _make_feasibility_checker(qubo_type: str, raw: Dict[str, Any]):
+#     ...  # Feasible Solutions 每代指標已停用
 
 def _make_objective_fn(qubo_type: str, raw: Dict[str, Any]):
     if qubo_type == "knapsack":
@@ -91,10 +83,10 @@ def _simulate_job(db: Session, job: Job):
     if qubo_type == "knapsack" and "max_weight" not in raw and "capacity" in raw:
         raw["max_weight"] = raw["capacity"]
 
-    Q = feasibility_checker = objective_fn = None
+    Q = objective_fn = None
     if not (qubo_type == "knapsack" and is_cuda_available()):
         Q = build_qubo_matrix(problem_type=qubo_type, problem_data=raw)
-        feasibility_checker = _make_feasibility_checker(qubo_type, raw)
+        # feasibility_checker = _make_feasibility_checker(qubo_type, raw)  # Feasible Solutions 指標已停用
         objective_fn = _make_objective_fn(qubo_type, raw)
 
     n_vars = Q.shape[0] if Q is not None else len(raw.get("items", []))
@@ -126,7 +118,7 @@ def _simulate_job(db: Session, job: Job):
         else:
             solver_gen = aeqts_solver(
                 Q=Q, num_iterations=num_iterations, N=N, seed=None,
-                feasibility_checker=feasibility_checker, objective_fn=objective_fn,
+                objective_fn=objective_fn,
                 theta_scale=theta_scale,
             )
 
@@ -138,12 +130,8 @@ def _simulate_job(db: Session, job: Job):
         for data in solver_gen:
             if data.get("type") == "progress":
                 objective = float(data["objective"])
-                is_feasible = data.get("is_feasible")
-                if qubo_type == "knapsack":
-                    if is_feasible is True:
-                        run_dashboard_objective = max(run_dashboard_objective, objective)
-                else:
-                    run_dashboard_objective = max(run_dashboard_objective, objective)
+                # is_feasible = data.get("is_feasible")  # Feasible Solutions 指標已停用
+                run_dashboard_objective = max(run_dashboard_objective, objective)
 
                 energy = data.get("energy", data.get("current_energy"))
                 if energy is not None:
@@ -154,7 +142,7 @@ def _simulate_job(db: Session, job: Job):
                     "value": round(run_dashboard_objective, 6),
                     "qubo_energy": round(run_dashboard_energy, 6) if run_dashboard_energy < float("inf") else None,
                     "entropy": round(data.get("entropy"), 6) if data.get("entropy") is not None else None,
-                    "is_feasible": is_feasible,
+                    # "is_feasible": is_feasible,  # Feasible Solutions 指標已停用
                     "qubit_probs": data.get("qubit_probs"),
                 })
             elif data.get("type") == "final":
@@ -168,10 +156,10 @@ def _simulate_job(db: Session, job: Job):
             solution = run_result.get("solution", [])
             total_weight = sum(float(item["weight"]) for item, bit in zip(items, solution) if bit)
             objective = sum(float(item["value"]) for item, bit in zip(items, solution) if bit)
-            is_feasible = total_weight <= float(raw.get("max_weight") or raw.get("capacity", 0))
+            is_valid_solution = total_weight <= float(raw.get("max_weight") or raw.get("capacity", 0))
         else:
             objective = run_history[-1]["value"] if run_history else float("-inf")
-            is_feasible = True
+            is_valid_solution = True
 
         convergence_iteration = next(
             (point["iteration"] for point in run_history if point["value"] >= objective),
@@ -183,7 +171,7 @@ def _simulate_job(db: Session, job: Job):
             "result": run_result,
             "history": run_history,
             "objective": float(objective),
-            "is_feasible": bool(is_feasible),
+            "is_valid_solution": bool(is_valid_solution),
             "convergence_iteration": convergence_iteration,
             "energy": float(run_result["energy"]),
         }

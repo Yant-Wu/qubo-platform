@@ -29,7 +29,7 @@ class HistoryPoint(BaseModel):
     value: float
     qubo_energy: Optional[float] = None       # 歷史最低 QUBO 能量（越小越好）
     entropy: Optional[float] = None           # AEQTS Q-bit entropy
-    is_feasible: Optional[bool] = None        # 該迭代最佳解是否滿足約束
+    # is_feasible: Optional[bool] = None      # Feasible Solutions 指標已停用
     qubit_probs: Optional[List[float]] = None # P(qubit_i=1)=β²，供 Qubit Probability Monitor 顯示
 
 

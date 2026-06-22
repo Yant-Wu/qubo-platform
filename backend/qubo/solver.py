@@ -133,7 +133,7 @@ def aeqts_solver(
     num_iterations: int = 1000,
     N: int = 50,
     seed: Optional[int] = None,
-    feasibility_checker: Optional[Callable[[np.ndarray], bool]] = None,
+    # feasibility_checker: Optional[Callable[[np.ndarray], bool]] = None,  # Feasible Solutions 指標已停用
     objective_fn: Optional[Callable[[np.ndarray], float]] = None,
     use_gpu: bool = True,
     theta_scale: Optional[float] = None,
@@ -177,7 +177,7 @@ def aeqts_solver(
 
         if it % record_interval == 0:
             sol_np = _to_np(best_sol, xp)
-            is_feasible = bool(feasibility_checker(sol_np)) if feasibility_checker else None
+            # is_feasible = bool(feasibility_checker(sol_np)) if feasibility_checker else None
             obj_val     = float(objective_fn(sol_np)) if objective_fn else best_energy
             qubit_probs = _to_np(beta ** 2, xp).tolist()
             
@@ -189,7 +189,7 @@ def aeqts_solver(
                 "current_energy": this_energy,
                 "objective"     : obj_val,
                 "entropy"       : current_entropy,
-                "is_feasible"   : is_feasible,
+                # "is_feasible" : is_feasible,  # Feasible Solutions 指標已停用
                 "qubit_probs"   : qubit_probs,
             }
 

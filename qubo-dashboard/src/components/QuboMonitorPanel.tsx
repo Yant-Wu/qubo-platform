@@ -95,7 +95,8 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
     isRunning, isCompleted,
     handlePause,
     iterCount,
-    bestObjective, tts, feasiblePct,
+    bestObjective, tts,
+    // feasiblePct,
   } = useQuboSimulation(jobId, detail, simParams);
 
   const pd = detail?.problem_data;
@@ -260,7 +261,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
             <p className="text-sm font-semibold text-gray-200 uppercase tracking-wider">{t.optResult}</p>
             <MetricBlock label="Best Objective"><FlickerValue value={bestObjective} xl /></MetricBlock>
             <MetricBlock label="TTS"><FlickerValue value={tts} large /></MetricBlock>
-            <MetricBlock label="Feasible Solutions"><FlickerValue value={feasiblePct !== '—' ? `${feasiblePct} %` : '—'} large /></MetricBlock>
+            {/* <MetricBlock label="Feasible Solutions"><FlickerValue value={feasiblePct !== '—' ? `${feasiblePct} %` : '—'} large /></MetricBlock> */}
             {solveResult && (
               <div className="border-t border-gray-700/40 pt-1 space-y-1">
                 <div className="flex justify-between text-xs"><span className="text-gray-200">Total Value</span><span className="font-mono text-emerald-300 font-semibold">{displayTotalValue ?? '—'}</span></div>
