@@ -34,6 +34,7 @@ logs/
 /test.txt
 /test_items_*.csv
 /case3_items_*.csv
+/kpdata_output/
 /backend/knapsack_500.py
 /backend/knapsack_500_items.csv
 

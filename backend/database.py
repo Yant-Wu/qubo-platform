@@ -46,7 +46,7 @@ class JobHistory(Base):
     value = Column(Float, nullable=False)
     qubo_energy = Column(Float, nullable=True)    # 歷史最低 QUBO 能量（越小越好）
     entropy = Column(Float, nullable=True)        # AEQTS Q-bit 族群 entropy
-    is_feasible = Column(Boolean, nullable=True)  # 該迭代的最佳解是否滿足約束
+    # is_feasible = Column(Boolean, nullable=True)  # Feasible Solutions 指標已停用
     qubit_probs = Column(JSON, nullable=True)     # 各 qubit 的 P(=1)=β²，供 Qubit Probability Monitor 使用
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

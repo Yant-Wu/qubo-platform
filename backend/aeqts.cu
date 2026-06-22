@@ -143,7 +143,7 @@ static string jdbl(double d) {
 // ── Main ──
 int main(int argc, char* argv[]) {
     vector<double> weights, values;
-    double capacity = 0.0, penalty = 10.0, timeout = 30.0;
+    double capacity = 0.0, penalty = 10.0, timeout = 30.0, theta = -1.0;
     int population = 50, iterations = 1000, slack_bits = 0; long long seed = -1LL;
 
     for (int i = 1; i < argc - 1; ++i) {
@@ -157,6 +157,7 @@ int main(int argc, char* argv[]) {
         else if (key == "--iterations") { iterations = stoi(val); ++i; }
         else if (key == "--timeout") { timeout = stod(val); ++i; }
         else if (key == "--seed") { seed = stoll(val); ++i; }
+        else if (key == "--theta") { theta = stod(val); ++i; }
     }
 
     int n_items = weights.size();
@@ -192,7 +193,7 @@ int main(int argc, char* argv[]) {
 
     vector<double> theta_list; for (int i = 1; i <= 10; ++i) theta_list.push_back(i * 0.01);
     uniform_int_distribution<> tdist(0, (int)theta_list.size() - 1);
-    double current_theta = theta_list[tdist(g_rng)];
+    double current_theta = theta >= 0.0 ? theta : theta_list[tdist(g_rng)];
 
     vector<double> qflat(2 * total_vars, 1.0 / sqrt(2.0));
     CUDA_CHECK(cudaMemcpy(gpu.d_q, qflat.data(), qflat.size() * sizeof(double), cudaMemcpyHostToDevice));
@@ -243,7 +244,7 @@ int main(int argc, char* argv[]) {
             for(int i=0; i<n_items; ++i) {
                 if (global_best_sol[i]) { obj_val += values[i]; weight_sum += weights[i]; }
             }
-            bool is_feasible = (weight_sum <= capacity);
+            // const bool is_feasible = (weight_sum <= capacity);  // Feasible Solutions 指標已停用
             
             ostringstream probs_json;
             for(int i=0; i<total_vars; ++i) {
@@ -256,7 +257,7 @@ int main(int argc, char* argv[]) {
                  << ", \"current_energy\":" << jdbl(cur_best_energy)
                  << ", \"objective\":" << jdbl(obj_val)
                  << ", \"entropy\":" << jdbl(current_entropy)
-                 << ", \"is_feasible\":" << (is_feasible ? "true" : "false")
+                 // << ", \"is_feasible\":" << (is_feasible ? "true" : "false")
                  << ", \"qubit_probs\":[" << probs_json.str() << "]}" << endl;
         }
     }
@@ -271,6 +272,7 @@ int main(int argc, char* argv[]) {
     }
     cout << "], \"energy\": " << jdbl(global_best_energy)
          << ", \"computation_time_ms\": " << jdbl(elapsed_ms)
-         << ", \"device\": \"cuda\"}\n";
+         << ", \"device\": \"cuda\""
+         << ", \"theta\": " << jdbl(current_theta) << "}\n";
     return 0;
 }

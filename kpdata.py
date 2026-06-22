@@ -3,6 +3,10 @@
 import argparse
 import csv
 import sys
+from pathlib import Path
+
+
+OUTPUT_DIR = Path(__file__).resolve().parent / "kpdata_output"
 
 
 def generate_items(n_items):
@@ -41,7 +45,8 @@ def save_as_csv(rows, output_path):
     name, weight, value
     """
 
-    with open(output_path, "w", newline="", encoding="utf-8-sig") as f:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=["name", "weight", "value"])
         writer.writeheader()
         writer.writerows(rows)
@@ -86,7 +91,7 @@ def main():
         "--output",
         type=str,
         default=None,
-        help="輸出檔名，例如：case3_items_100.csv"
+        help="輸出檔名；所有產物會存入 kpdata_output/"
     )
 
     args = parser.parse_args()
@@ -103,12 +108,14 @@ def main():
     rows, total_weight, capacity = generate_items(n_items)
 
     if args.output is None:
-        output_path = "case3_items_{0}.csv".format(n_items)
+        filename = "case3_items_{0}.csv".format(n_items)
     else:
-        output_path = args.output
+        filename = Path(args.output).name
 
-        if not output_path.lower().endswith(".csv"):
-            output_path += ".csv"
+        if not filename.lower().endswith(".csv"):
+            filename += ".csv"
+
+    output_path = OUTPUT_DIR / filename
 
     save_as_csv(rows, output_path)
 
