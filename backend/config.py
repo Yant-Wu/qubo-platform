@@ -20,6 +20,12 @@ CORS_ORIGINS = ["*"] if _cors_raw == "*" else [o.strip() for o in _cors_raw.spli
 WORKER_ENABLED = os.getenv("WORKER_ENABLED", "true").lower() == "true"
 WORKER_CHECK_INTERVAL = int(os.getenv("WORKER_CHECK_INTERVAL", "2"))  # 秒
 
+# 多 theta 實驗設定：可在 backend/.env 以同名環境變數覆寫。
+DEFAULT_EXPERIMENT_COUNT = int(os.getenv("DEFAULT_EXPERIMENT_COUNT", "200"))
+MAX_EXPERIMENT_COUNT = int(os.getenv("MAX_EXPERIMENT_COUNT", str(DEFAULT_EXPERIMENT_COUNT)))
+if not 1 <= DEFAULT_EXPERIMENT_COUNT <= MAX_EXPERIMENT_COUNT:
+    raise ValueError("DEFAULT_EXPERIMENT_COUNT 必須介於 1 與 MAX_EXPERIMENT_COUNT 之間")
+
 # Server
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))

@@ -241,7 +241,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
             <ReadRow label="Timeout" value={paramTimeout ? `${paramTimeout} s` : '—'} />
             <ReadRow label="Neighbors (N)" value={paramInitTemp} />
             <ReadRow label="Iterations" value={paramCoolingRate} />
-            <ReadRow label="Experiments" value={String(detail?.problem_data?.experiment_count ?? 1)} />
+            <ReadRow label="Experiments" value={String(detail?.problem_data?.experiment_count ?? '—')} />
             {detail?.compute_device && (
               <>
                 <div className="border-t border-gray-700/40 my-1" />

@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
+from config import DEFAULT_EXPERIMENT_COUNT, MAX_EXPERIMENT_COUNT
 from database import Job, JobHistory, SessionLocal
 from schemas import HistoryPoint
 from qubo import build_qubo_matrix, aeqts_solver
@@ -18,8 +19,8 @@ _PROBLEM_TYPE_MAP: Dict[str, str] = {
     "custom": "custom",
 }
 
-# 0.01π～0.10π 依序掃描；100 次實驗時每個 theta 各執行 10 次。
-_THETA_SCALES = tuple(round(index / 100, 2) for index in range(1, 11))
+# 每輪各使用一個 theta：0.001π、0.002π、…、0.100π。
+_THETA_SCALES = tuple(round(index / 1000, 3) for index in range(1, 101))
 
 
 def _theta_schedule(experiment_count: int) -> List[float]:
@@ -96,9 +97,9 @@ def _simulate_job(db: Session, job: Job):
 
     import time as _time
     requested_experiment_count = raw.get("experiment_count")
-    experiment_count = int(requested_experiment_count) if requested_experiment_count is not None else 100
-    if not 1 <= experiment_count <= 100:
-        raise ValueError("experiment_count 必須介於 1 到 100")
+    experiment_count = int(requested_experiment_count) if requested_experiment_count is not None else DEFAULT_EXPERIMENT_COUNT
+    if not 1 <= experiment_count <= MAX_EXPERIMENT_COUNT:
+        raise ValueError(f"experiment_count 必須介於 1 到 {MAX_EXPERIMENT_COUNT}")
 
     run_start = _time.time()
     best_experiment: Optional[Dict[str, Any]] = None

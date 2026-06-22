@@ -11,6 +11,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
+from config import DEFAULT_EXPERIMENT_COUNT
 
 _log = logging.getLogger(__name__)
 
@@ -104,6 +105,9 @@ async def solve_and_create(req: JobCreateRequest, background_tasks: BackgroundTa
     from database import Job as JobModel
 
     job_id = str(uuid.uuid4())
+    problem_data = req.problem_data.model_dump()
+    if problem_data.get("experiment_count") is None:
+        problem_data["experiment_count"] = DEFAULT_EXPERIMENT_COUNT
     job_orm = JobModel(
         id=job_id,
         task_name=req.task_name,
@@ -111,7 +115,7 @@ async def solve_and_create(req: JobCreateRequest, background_tasks: BackgroundTa
         n_variables=req.n_variables,
         solver_backend=req.solver_backend,
         core_limit=req.core_limit,
-        problem_data=req.problem_data.model_dump(),
+        problem_data=problem_data,
         status="running",
     )
     db.add(job_orm)

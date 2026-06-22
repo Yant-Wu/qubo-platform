@@ -77,7 +77,6 @@ export default function ParamsPage({ onNext, defaultSimParams, defaultPayload, r
       ...payload.problem_data,
       num_iterations:  1000,                 // Iterations 固定預設
       timeout_seconds: Math.max(1, Number(timeout) || 30),
-      experiment_count: 100,                 // theta 0.01π～0.10π 各執行 10 次
     };
     onNext(payload, { timeout, initTemp: '50', coolingRate: '1000' });
   };
