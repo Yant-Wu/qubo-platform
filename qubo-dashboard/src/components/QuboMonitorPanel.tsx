@@ -9,6 +9,8 @@ import EnergyConvergenceChart from './EnergyConvergenceChart';
 import EntropyChart from './EntropyChart';
 import QubitProbChart from './QubitProbChart';
 
+const ENTROPY_DISPLAY_THRESHOLD = 0.02;
+
 interface Props {
   jobId: string | number | null;
   detail: JobDetail | null;
@@ -38,6 +40,9 @@ const i18n = {
     tabMain: '綜合視圖 (Convergence & Qubits)',
     tabEntropy: '系統平均熵 (Entropy)',
     rangeLabel: '迭代視窗',
+    entropyCutoffBtn: '展示至 Entropy ≤ 0.02',
+    fullIterationsBtn: '顯示完整迭代',
+    entropyCutoffUnavailable: '尚未達到 Entropy ≤ 0.02',
     chartTop: '最佳價值與能量收斂',
     chartBottom: 'Qubit 量子態坍縮機率',
     loadTask: '載入任務資料中…',
@@ -60,6 +65,9 @@ const i18n = {
     tabMain: 'Main View (Convergence & Qubits)',
     tabEntropy: 'System Avg Entropy',
     rangeLabel: 'Iteration window',
+    entropyCutoffBtn: 'Show through Entropy ≤ 0.02',
+    fullIterationsBtn: 'Show full iterations',
+    entropyCutoffUnavailable: 'Entropy ≤ 0.02 has not been reached',
     chartTop: 'Best Value & Energy Convergence',
     chartBottom: 'Qubit Collapse Probability',
     loadTask: 'Loading task data...',
@@ -116,6 +124,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
   const configuredIteration = Number(paramCoolingRate) || 0;
   const maxIteration = Math.max(1, historyMaxIteration || configuredIteration);
   const [visibleEnd, setVisibleEnd] = useState(maxIteration);
+  const [showEntropyCutoff, setShowEntropyCutoff] = useState(false);
   const rangeTimerRef = useRef<number | null>(null);
   const pendingRangeEndRef = useRef(maxIteration);
   const previousMaxIterationRef = useRef(maxIteration);
@@ -144,6 +153,9 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
   const canAdjustRange = maxIteration > 1;
   const chartViewStart = 1;
   const chartViewEnd = Math.max(1, Math.min(maxIteration, visibleEnd));
+  const entropyCutoffIteration = simHistory.find(
+    (point) => typeof point.entropy === 'number' && point.entropy <= ENTROPY_DISPLAY_THRESHOLD,
+  )?.iteration;
 
   const scheduleVisibleEnd = useCallback((nextEnd: number) => {
     pendingRangeEndRef.current = nextEnd;
@@ -155,6 +167,7 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
   }, []);
 
   const handleRangeChange = useCallback((nextEnd: number) => {
+    setShowEntropyCutoff(false);
     rangeTouchedRef.current = true;
     pendingRangeEndRef.current = nextEnd;
     if (rangeValueRef.current) rangeValueRef.current.textContent = `1-${nextEnd}`;
@@ -168,6 +181,31 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
     }
     setVisibleEnd(pendingRangeEndRef.current);
   }, []);
+
+  const handleEntropyCutoffToggle = useCallback(() => {
+    if (showEntropyCutoff) {
+      setShowEntropyCutoff(false);
+      rangeTouchedRef.current = false;
+      pendingRangeEndRef.current = maxIteration;
+      setVisibleEnd(maxIteration);
+      if (rangeInputRef.current) rangeInputRef.current.value = String(maxIteration);
+      if (rangeValueRef.current) rangeValueRef.current.textContent = `1-${maxIteration}`;
+      return;
+    }
+
+    if (entropyCutoffIteration == null) return;
+    const cutoffEnd = Math.max(1, Math.min(maxIteration, entropyCutoffIteration));
+    setShowEntropyCutoff(true);
+    rangeTouchedRef.current = true;
+    pendingRangeEndRef.current = cutoffEnd;
+    setVisibleEnd(cutoffEnd);
+    if (rangeInputRef.current) rangeInputRef.current.value = String(cutoffEnd);
+    if (rangeValueRef.current) rangeValueRef.current.textContent = `1-${cutoffEnd}`;
+  }, [entropyCutoffIteration, maxIteration, showEntropyCutoff]);
+
+  useEffect(() => {
+    if (entropyCutoffIteration == null) setShowEntropyCutoff(false);
+  }, [entropyCutoffIteration]);
 
   const handleExport = () => {
     const originalItems = (detail?.problem_data?.items as Array<{ name: string }> | undefined) ?? [];
@@ -361,6 +399,19 @@ export default function QuboMonitorPanel({ jobId, detail, isLoading = false, loa
                     <span ref={rangeValueRef} className="w-28 shrink-0 text-right font-mono text-indigo-300">
                       1-{maxIteration}
                     </span>
+                    <button
+                      type="button"
+                      disabled={entropyCutoffIteration == null}
+                      onClick={handleEntropyCutoffToggle}
+                      title={entropyCutoffIteration == null
+                        ? t.entropyCutoffUnavailable
+                        : `Entropy ≤ ${ENTROPY_DISPLAY_THRESHOLD} at Iteration ${entropyCutoffIteration}`}
+                      className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${showEntropyCutoff
+                        ? 'border-emerald-500/70 bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30'
+                        : 'border-indigo-700/50 bg-indigo-600/15 text-indigo-300 hover:bg-indigo-600/30 hover:text-indigo-100'}`}
+                    >
+                      {showEntropyCutoff ? t.fullIterationsBtn : t.entropyCutoffBtn}
+                    </button>
                   </div>
                 )}
               </div>
