@@ -41,6 +41,7 @@ def cuda_knapsack_solver(
     num_iterations: int = 1000,
     seed: Optional[int] = None,
     timeout: float = 30.0,
+    theta_scale: Optional[float] = None,
 ) -> Generator[Dict[str, Any], None, None]:
     binary = _find_binary()
     if binary is None:
@@ -60,6 +61,8 @@ def cuda_knapsack_solver(
         cmd.extend(["--slack-bits", str(int(slack_bits))])
     if seed is not None:
         cmd.extend(["--seed", str(int(seed))])
+    if theta_scale is not None:
+        cmd.extend(["--theta", str(float(theta_scale))])
 
     # 💡 使用 Popen 並且逐行讀取 stdout 達成即時回傳
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
@@ -133,6 +136,7 @@ def aeqts_solver(
     feasibility_checker: Optional[Callable[[np.ndarray], bool]] = None,
     objective_fn: Optional[Callable[[np.ndarray], float]] = None,
     use_gpu: bool = True,
+    theta_scale: Optional[float] = None,
 ) -> Generator[Dict[str, Any], None, None]:
     
     xp     = _xp(use_gpu)
@@ -144,7 +148,7 @@ def aeqts_solver(
 
     start_time = time.time()
     _theta_list   = np.round(np.arange(0.01, 0.11, 0.01), 2).tolist()
-    current_theta = float(np.random.choice(_theta_list))
+    current_theta = float(theta_scale) if theta_scale is not None else float(np.random.choice(_theta_list))
 
     Q_dev = xp.asarray(Q)
     n     = Q_dev.shape[0]
@@ -197,4 +201,5 @@ def aeqts_solver(
         "energy"             : best_energy,
         "computation_time_ms": round(computation_time_ms, 2),
         "device"             : device,
+        "theta"              : current_theta,
     }

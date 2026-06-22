@@ -23,6 +23,7 @@ export interface JobDetail {
     filename?: string;
     num_iterations?: number;
     timeout_seconds?: number;
+    experiment_count?: number;
     Q_matrix?: number[][];     // custom 類型的 QUBO 矩陣
     // Knapsack 表單紀錄
     items?: Array<{ name: string; weight: number; value: number }>;
@@ -74,6 +75,7 @@ export interface CreateJobPayload {
     filename?: string;
     num_iterations?: number;   // AEQTS 迭代次數
     timeout_seconds?: number;  // 執行時限（秒）
+    experiment_count?: number; // 多 theta 實驗次數
     Q_matrix?: number[][];     // 自訂 QUBO 矩陣（custom 類型）
     // Knapsack 表單紀錄
     items?: Array<{ name: string; weight: number; value: number }>;

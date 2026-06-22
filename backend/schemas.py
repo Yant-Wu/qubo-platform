@@ -54,6 +54,7 @@ class ProblemData(BaseModel):
     n_variables: Optional[int] = Field(default=None, ge=1, description="隨機生成時的變數數量（物品數 / 節點數）")
     num_iterations: Optional[int] = Field(default=None, ge=1, description="AEQTS 迭代次數")
     timeout_seconds: Optional[float] = Field(default=None, gt=0, description="執行時限（秒）")
+    experiment_count: Optional[int] = Field(default=None, ge=1, le=100, description="多 theta 實驗次數")
     Q_matrix: Optional[List[List[float]]] = Field(default=None, max_length=500, description="自訂 QUBO 矩陣（custom 類型，最多 500×500）")
     # Knapsack 問題前端表單紀錄（供「套用此設定」還原用）
     items: Optional[List[KnapsackItemData]] = Field(default=None, max_length=10000, description="Knapsack 物品清單（最多 500 項）")
@@ -64,6 +65,9 @@ class ProblemData(BaseModel):
     selected_items: Optional[List[KnapsackItemData]] = Field(default=None, description="已選取的物品清單")
     total_value: Optional[float] = Field(default=None, description="最佳解總價值")
     total_weight: Optional[float] = Field(default=None, description="最佳解總重量")
+    completed_experiments: Optional[int] = Field(default=None, ge=0, description="已完成實驗次數")
+    best_experiment: Optional[int] = Field(default=None, ge=1, description="最佳實驗編號")
+    best_theta: Optional[float] = Field(default=None, description="最佳實驗使用的 theta scale")
 
 
 # ============ Job CRUD ============
