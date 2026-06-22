@@ -1,6 +1,6 @@
-// src/components/EntropyChart.tsx — AEQTS Q-bit Entropy 收斂圖
+// src/components/EntropyChart.tsx — AEQTS Qubit Entropy 收斂圖
 // 對應 test.py 的 entropy_history.json
-// Entropy 接近 1 = Q-bit 最不確定（量子態），接近 0 = 完全收斂（古典態）
+// Entropy 接近 1 = Qubit 最不確定（量子態），接近 0 = 完全收斂（古典態）
 import ReactECharts from 'echarts-for-react';
 import type { HistoryDataPoint } from '../types/job';
 
@@ -59,7 +59,7 @@ export default function EntropyChart({ history, compact = false }: Props) {
     series: [
       {
         type: 'line',
-        name: 'Q-bit Entropy',
+        name: 'Qubit Entropy',
         data: data.map((d) => [d.iteration, d.entropy]),
         symbol: 'none',
         lineStyle: { color: '#a78bfa', width: 2 },

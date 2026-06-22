@@ -1,4 +1,4 @@
-// src/components/QubitProbChart.tsx — Q-bit 機率變化圖 (支援雙語)
+// src/components/QubitProbChart.tsx — Qubit 機率變化圖 (支援雙語)
 import { memo, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { HistoryDataPoint } from '../types/job';
@@ -19,7 +19,7 @@ function QubitProbChart({ history, lang = 'zh', visibleStart, visibleEnd }: Prop
   if (data.length === 0) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
-        {lang === 'zh' ? '目前無 Q-bit 機率資料' : 'No Q-bit probability data available'}
+        {lang === 'zh' ? '目前無 Qubit 機率資料' : 'No Qubit probability data available'}
       </div>
     );
   }
