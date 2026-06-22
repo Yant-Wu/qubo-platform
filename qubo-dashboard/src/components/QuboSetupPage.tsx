@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, Upload } from 'lucide-react';
 import type { KnapsackSolveRequest, QuboFormData } from '../types/job';
 import type { AppLanguage } from '../types/i18n';
 
+const MAX_UPLOADED_ITEMS = 10000;
+
 interface Props {
   problemType: string;
   problemData?: Record<string, unknown>;
@@ -72,7 +74,7 @@ export default function QuboSetupPage({
       slackN: 'slack',
       total: '＝',
       fileTip: '點擊或拖放檔案到此處',
-      fileSupport: '支援 CSV（需含 name,weight,value 欄位）或 JSON',
+      fileSupport: '支援 CSV（需含 name,weight,value 欄位）或 JSON，最多 10,000 筆',
       loadedItems: '✓ 已載入',
       more: '…還有',
       moreItems: '個',
@@ -108,7 +110,7 @@ export default function QuboSetupPage({
       slackN: 'slack',
       total: '=',
       fileTip: 'Click or drop file here',
-      fileSupport: 'Support CSV (with name,weight,value) or JSON',
+      fileSupport: 'Support CSV (with name,weight,value) or JSON, up to 10,000 items',
       loadedItems: '✓ Loaded',
       more: '…more',
       moreItems: 'items',
@@ -273,6 +275,9 @@ export default function QuboSetupPage({
         }
 
         if (parsed.length === 0) throw new Error('解析結果為空，請確認檔案內容');
+        if (parsed.length > MAX_UPLOADED_ITEMS) {
+          throw new Error(`上傳檔案最多可包含 ${MAX_UPLOADED_ITEMS.toLocaleString()} 個物品，目前共有 ${parsed.length.toLocaleString()} 個`);
+        }
         setItems(parsed);
         setItemFileError(null);
       } catch (err) {
