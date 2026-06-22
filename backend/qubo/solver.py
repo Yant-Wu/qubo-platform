@@ -164,7 +164,6 @@ def aeqts_solver(
         nbrs      = _gen_nbrs(beta, N, xp)
         sidx, eng = _evaluate(nbrs, Q_dev, xp)
         this_energy = float(eng[sidx[0]])
-        average_energy = float(xp.mean(eng).item())
 
         if this_energy < best_energy:
             best_energy = this_energy
@@ -184,7 +183,6 @@ def aeqts_solver(
                 "iteration"     : it + 1,
                 "energy"        : best_energy,
                 "current_energy": this_energy,
-                "average_energy": average_energy,
                 "objective"     : obj_val,
                 "entropy"       : current_entropy,
                 "is_feasible"   : is_feasible,

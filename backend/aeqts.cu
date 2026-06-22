@@ -208,7 +208,6 @@ int main(int argc, char* argv[]) {
     double global_best_energy = 1e15;
     vector<int> global_best_sol(total_vars, 0);
     vector<unsigned char> best_bits(total_vars);
-    vector<double> population_energies(population);
     int record_interval = 1;
     
     auto t_start = chrono::high_resolution_clock::now();
@@ -228,9 +227,7 @@ int main(int argc, char* argv[]) {
 
         int cur_best_idx = 0; double cur_best_energy = 0.0;
         CUDA_CHECK(cudaMemcpy(&cur_best_idx, gpu.d_idx, sizeof(int), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaMemcpy(population_energies.data(), gpu.d_energy, population * sizeof(double), cudaMemcpyDeviceToHost));
-        cur_best_energy = population_energies.front();
-        double average_energy = accumulate(population_energies.begin(), population_energies.end(), 0.0) / population;
+        CUDA_CHECK(cudaMemcpy(&cur_best_energy, gpu.d_energy, sizeof(double), cudaMemcpyDeviceToHost));
 
         if (cur_best_energy < global_best_energy) {
             global_best_energy = cur_best_energy;
@@ -257,7 +254,6 @@ int main(int argc, char* argv[]) {
             cout << "{\"type\":\"progress\", \"iteration\":" << (it + 1)
                  << ", \"energy\":" << jdbl(global_best_energy) 
                  << ", \"current_energy\":" << jdbl(cur_best_energy)
-                 << ", \"average_energy\":" << jdbl(average_energy)
                  << ", \"objective\":" << jdbl(obj_val)
                  << ", \"entropy\":" << jdbl(current_entropy)
                  << ", \"is_feasible\":" << (is_feasible ? "true" : "false")

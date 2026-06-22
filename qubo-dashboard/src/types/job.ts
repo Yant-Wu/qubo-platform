@@ -47,7 +47,7 @@ export interface JobDetail {
 export interface HistoryDataPoint {
   iteration: number;
   value: number;
-  qubo_energy?: number | null;    // 當代候選解的平均 QUBO 能量
+  qubo_energy?: number | null;    // 歷史最低 QUBO 能量（越小越好）
   entropy?: number | null;        // AEQTS Q-bit entropy（0=完全收斂，1=最大不確定）
   qubit_probs?: number[];
   is_feasible?: boolean | null;

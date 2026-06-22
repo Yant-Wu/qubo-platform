@@ -86,6 +86,7 @@ def _simulate_job(db: Session, job: Job):
     run_start = _time.time()
     best_result = None
     best_dashboard_objective = 0.0 if qubo_type == "knapsack" else float("-inf")
+    best_dashboard_energy = float("inf")
 
     use_cuda = qubo_type == "knapsack" and is_cuda_available()
     
@@ -116,22 +117,24 @@ def _simulate_job(db: Session, job: Job):
 
             # Dashboard 語意：
             # value = 歷史最佳 objective（背包只採計可行解）
-            # qubo_energy = 當代 N 個候選解的平均 QUBO energy
+            # qubo_energy = 截至當代為止的歷史最低 QUBO energy
             if qubo_type == "knapsack":
                 if is_feasible is True:
                     best_dashboard_objective = max(best_dashboard_objective, objective)
             else:
                 best_dashboard_objective = max(best_dashboard_objective, objective)
 
-            average_energy = data.get("average_energy")
-            if average_energy is None:
-                raise RuntimeError("solver 未回傳 average_energy；請重新建置求解器")
+            energy = data.get("energy")
+            if energy is None:
+                energy = data.get("current_energy")
+            if energy is not None:
+                best_dashboard_energy = min(best_dashboard_energy, float(energy))
 
             db.add(JobHistory(
                 job_id=job.id,
                 iteration=data["iteration"],
                 value=round(best_dashboard_objective, 6),
-                qubo_energy=round(float(average_energy), 6) if average_energy is not None else None,
+                qubo_energy=round(best_dashboard_energy, 6) if best_dashboard_energy < float("inf") else None,
                 entropy=round(data.get("entropy"), 6) if data.get("entropy") is not None else None,
                 is_feasible=is_feasible,
                 qubit_probs=data.get("qubit_probs"),
